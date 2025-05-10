@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Alarmas - MediTime</title>
+  <!-- 1. Estilos globales -->
+  <link rel="stylesheet" href="css/main.css">
+  <!-- 2. Estilos específicos de alarmas -->
+  <link rel="stylesheet" href="css/alarm.css">
+  <style>
+    /* Ajustes para el botón de regresar dentro de alarm.css */
+    .app-header .back-button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+    }
+    .app-header .back-button img {
+      width: 24px;
+      height: 24px;
+    }
+    .app-header .back-button .back-text {
+      font-size: 1.2rem;
+      color: var(--text-color, #333);
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- Cabecera con botón de regresar -->
+    <header class="app-header">
+      <button class="back-button" id="backButton">
+        <img src="imgfon/volver.png" alt="Volver">
+        <span class="back-text">Volver</span>
+      </button>
+      <h1>Alarmas</h1>
+    </header>
+
+    <!-- Contenido principal -->
+    <main class="app-content">
+      <!-- Formulario de nueva alarma -->
+      <div class="alarm-form">
+        <div class="form-group">
+          <label for="alarmName">Nombre</label>
+          <input type="text" id="alarmName" placeholder="Nombre de la alarma">
+        </div>
+        <div class="form-group">
+          <label for="alarmTime">Hora</label>
+          <input type="time" id="alarmTime">
+        </div>
+        <button id="saveAlarmButton" class="btn-primary">Guardar</button>
+      </div>
+
+      <!-- Lista de alarmas existentes -->
+      <div class="alarms-list">
+        <h2>Mis Alarmas</h2>
+        <ul id="alarmsContainer" class="alarms-container">
+          <!-- Aquí se inyectan los <li> desde JS -->
+        </ul>
+      </div>
+    </main>
+
+    <!-- Pie de navegación -->
+    <nav class="app-footer">
+      <a href="index.html" class="nav-item" aria-label="Inicio">
+        <img src="img/home.png" alt="Inicio">
+        <span>Inicio</span>
+      </a>
+      <a href="contacts.html" class="nav-item" aria-label="Contactos">
+        <img src="img/contacts.png" alt="Contactos">
+        <span>Contactos</span>
+      </a>
+      <a href="alarm.html" class="nav-item active" aria-label="Alarmas">
+        <img src="img/alarm.png" alt="Alarmas">
+        <span>Alarmas</span>
+      </a>
+      <a href="settings.html" class="nav-item" aria-label="Ajustes">
+        <img src="img/Ajus.png" alt="Ajustes">
+        <span>Ajustes</span>
+      </a>
+    </nav>  
+    
+  </div>
+
+  <!-- Sonido de alarma -->
+  <audio id="alarmSound" src="sounds/alarm.mp3" loop></audio>
+
+  <!-- Scripts -->
+  <script src="cordova.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/alarm.js"></script>
+</body>
+</html>

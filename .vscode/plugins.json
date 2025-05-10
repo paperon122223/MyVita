@@ -1,0 +1,1 @@
+{"plugins":["cordova-plugin-local-notification","cordova-plugin-device","cordova-plugin-contacts","cordova-plugin-dialogs","cordova-plugin-media","cordova-plugin-file","com.napolitano.cordova.plugin.intent","cordova-plugin-vibration"]}

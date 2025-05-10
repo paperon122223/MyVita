@@ -1,0 +1,88 @@
+/* main.css – Menú profesional MediTime */
+
+/* Variables para colores y espaciado */
+:root {
+    --primary: #0d6efd;
+    --primary-dark: #0b5ed7;
+    --bg: #f4f6f8;
+    --card-bg: #ffffff;
+    --text: #333333;
+    --radius: 12px;
+    --shadow: 0 4px 12px rgba(0,0,0,0.1);
+    --gap: 16px;
+  }
+  
+  body {
+    margin: 0;
+    background-color: var(--bg);
+    font-family: 'Segoe UI', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  
+  .menu-container {
+    width: 100%;
+    max-width: 600px;
+    padding: var(--gap);
+    text-align: center;
+  }
+  
+  .menu-title {
+    margin-bottom: var(--gap);
+    font-size: 2rem;
+    color: var(--primary);
+    font-weight: 700;
+  }
+  
+  .menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--gap);
+  }
+  
+  .menu-card {
+    background-color: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  
+  .menu-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding: var(--gap);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+  }
+  
+  .menu-btn img {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 8px;
+  }
+  
+  .menu-btn span {
+    font-size: 1rem;
+    color: var(--text);
+    font-weight: 600;
+  }
+  
+  .menu-btn:hover {
+    background-color: var(--primary);
+    transform: translateY(-4px);
+  }
+  
+  .menu-btn:hover span {
+    color: #fff;
+  }
+  
+  .menu-btn:hover img {
+    filter: brightness(0) invert(1);
+  }
+  
