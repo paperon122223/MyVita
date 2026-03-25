@@ -8,7 +8,7 @@
 
   const AI_CONFIG = {
     apiUrl: 'https://api.groq.com/openai/v1/chat/completions',
-    apiKey: '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',
+    apiKey: ,
     model: 'llama-3.1-8b-instant'
   };
 
