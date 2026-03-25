@@ -1,0 +1,186 @@
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #e0f7fa, #b3e5fc);
+    min-height: 100vh;
+    margin: 0;
+}
+.form-list-container {
+    max-width: 380px;
+    margin: 40px auto;
+    padding: 16px 0 0 0;
+}
+h1 {
+    font-size: 22px;
+    text-align: center;
+    color: #0277bd;
+    margin-bottom: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+.form-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.09);
+    padding: 0;
+    overflow: hidden;
+    margin-bottom: 14px;
+}
+.form-list label {
+    display: flex;
+    flex-direction: column;
+    font-size: 13.5px;
+    color: #2a2a2a;
+    border-bottom: 1px solid #ebebeb;
+    padding: 13px 18px 8px 18px;
+    background: none;
+    margin: 0;
+}
+.form-list label:last-child {
+    border-bottom: none;
+}
+.form-list input,
+.form-list select {
+    border: none;
+    background: none;
+    font-size: 15px;
+    font-family: inherit;
+    padding: 6px 0 2px 0;
+    margin-top: 1px;
+    color: #0277bd;
+    outline: none;
+    border-radius: 0;
+    transition: background 0.2s;
+}
+.form-list input:focus,
+.form-list select:focus {
+    background: #e0f7fa;
+}
+.form-list select {
+    padding-right: 16px;
+}
+.btn-list {
+    margin: 15px 18px 17px 18px;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: #0288d1;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.btn-list:hover {
+    background: #0277bd;
+}
+.form-list-footer {
+    text-align: center;
+    font-size: 13px;
+    margin-top: 6px;
+}
+.form-list-footer a {
+    color: #0288d1;
+    text-decoration: none;
+    font-weight: 500;
+}
+.form-list-footer a:hover {
+    text-decoration: underline;
+}
+@media (max-width: 500px) {
+    .form-list-container {
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+    .form-list {
+        border-radius: 0;
+        box-shadow: none;
+    }
+}
+
+/* --- Switch personalizado --- */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 22px;
+  margin: 0;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .3s;
+  border-radius: 22px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #0d6efd; /* Color azul de Bootstrap (ajusta si usas otro) */
+}
+
+input:checked + .slider:before {
+  transform: translateX(24px);
+}
+
+/* Opcional: mejorar contraste en modo oscuro */
+body.dark-mode .slider {
+  background-color: #555;
+}
+body.dark-mode input:checked + .slider {
+  background-color: #0d6efd;
+}
+/* ===== BOTÓN MENÚ FIJO ===== */
+.menu-shortcut {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 58px;
+  height: 58px;
+  background: linear-gradient(135deg, #7c4dff, #5e35b1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 25px rgba(0,0,0,.35);
+  cursor: pointer;
+  z-index: 9999;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.menu-shortcut:hover {
+  transform: translateX(-50%) scale(1.08);
+  box-shadow: 0 16px 30px rgba(0,0,0,.45);
+}
+
+.menu-shortcut span {
+  color: #fff;
+  font-size: 30px;
+}

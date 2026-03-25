@@ -1,0 +1,932 @@
+/* ========================================
+   ESCANEO DE RECETAS - ESTILO MYVITA COMPLETO
+======================================== */
+
+/* ========================================
+   CONTENEDOR PRINCIPAL
+======================================== */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* ========================================
+   HEADER CON BOTÓN VOLVER
+======================================== */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: white;
+  padding: 20px 16px 16px;
+  margin-bottom: 16px;
+  border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
+  box-shadow: 0 6px 20px rgba(2, 136, 209, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.back-button {
+  position: absolute;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: #0288d1;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  font-family: 'Poppins', sans-serif;
+}
+
+.back-button:hover {
+  background: #e0f7fa;
+}
+
+.back-button .material-icons {
+  font-size: 1.4rem;
+}
+
+.titulo-app {
+  font-weight: 800;
+  color: #0288d1;
+  text-align: center;
+  font-size: 1.8rem;
+  background: linear-gradient(90deg, #0288d1, #00c853);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+}
+
+/* ========================================
+   CONTENIDO PRINCIPAL
+======================================== */
+.app-content {
+  flex: 1;
+  padding: 0 16px 90px;
+  overflow-y: auto;
+}
+
+/* ========================================
+   PASOS DEL ESCANEO
+======================================== */
+.scan-step {
+  display: none;
+}
+
+.scan-step.active {
+  display: block;
+}
+
+/* ========================================
+   TARJETAS (ESTILO MYVITA)
+======================================== */
+.instructions-card,
+.preview-card,
+.processing-card,
+.results-card {
+  background: #fff;
+  border-radius: 30px;
+  box-shadow: 0 6px 32px rgba(40, 82, 127, 0.08), 0 1.5px 16px rgba(40, 82, 127, 0.10);
+  padding: 32px 26px 20px 26px;
+  max-width: 420px;
+  margin: 36px auto 22px auto;
+  border: 1px solid #e0f7fa;
+  transition: all 0.2s ease;
+}
+
+.instructions-card:hover,
+.preview-card:hover,
+.processing-card:hover,
+.results-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(2, 136, 209, 0.15);
+}
+
+/* ========================================
+   PASO 1: INSTRUCCIONES Y CÁMARA
+======================================== */
+.instruction-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 20px;
+  background: linear-gradient(90deg, #1772fe 10%, #66a3ff 90%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 18px rgba(23, 114, 254, 0.3);
+}
+
+.instruction-icon .material-icons {
+  font-size: 42px;
+  color: white;
+}
+
+.instruction-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0288d1;
+  text-align: center;
+  margin-bottom: 16px;
+  background: linear-gradient(90deg, #0288d1, #00c853);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.instruction-text {
+  font-size: 1rem;
+  color: #666;
+  text-align: center;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.instruction-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px 0;
+}
+
+.instruction-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  background: #f5f8fa;
+  border-radius: 16px;
+  font-size: 0.95rem;
+  color: #222;
+  font-weight: 500;
+  border: 2.2px solid #dde6f2;
+}
+
+.instruction-list li .material-icons {
+  color: #00c853;
+  font-size: 22px;
+}
+
+/* ========================================
+   CONTENEDOR DE CÁMARA
+======================================== */
+.camera-container {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  margin: 24px 0;
+  background: #000;
+  border-radius: 20px;
+  overflow: hidden;
+  aspect-ratio: 4/3;
+  display: none; /* Oculto por defecto */
+}
+
+#videoPreview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#canvas {
+  display: none;
+}
+
+.camera-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.scan-frame {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
+  height: 70%;
+  border: 3px dashed rgba(255, 255, 255, 0.8);
+  border-radius: 16px;
+  animation: scanPulse 2s infinite;
+}
+
+@keyframes scanPulse {
+  0%, 100% {
+    border-color: rgba(255, 255, 255, 0.8);
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    border-color: #66a3ff;
+    transform: translate(-50%, -50%) scale(1.02);
+  }
+}
+
+/* ========================================
+   BOTONES (ESTILO MYVITA)
+======================================== */
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.btn-primary,
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 18px;
+  padding: 15px 24px;
+  margin-top: 5px;
+  box-shadow: 0 3px 18px rgba(23, 114, 254, 0.1);
+  transition: all 0.18s;
+  cursor: pointer;
+  width: 100%;
+  font-family: 'Poppins', sans-serif;
+}
+
+.btn-primary {
+  background: linear-gradient(90deg, #1772fe 10%, #66a3ff 90%);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(2, 136, 209, 0.35);
+}
+
+.btn-primary:active {
+  background: linear-gradient(90deg, #1252b5 10%, #4f8edb 90%);
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: white;
+  color: #2573d6;
+  border: 2px solid #2573d6;
+}
+
+.btn-secondary:hover {
+  background: #eef6fe;
+  transform: translateY(-2px);
+}
+
+.btn-primary .material-icons,
+.btn-secondary .material-icons {
+  font-size: 1.4rem;
+}
+
+.btn-large {
+  padding: 18px 24px;
+  font-size: 1.1rem;
+}
+
+/* ========================================
+   PASO 2: PREVIEW
+======================================== */
+.preview-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0288d1;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.image-preview-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto 24px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.image-preview-container img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.preview-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.preview-actions button {
+  flex: 1;
+}
+
+/* ========================================
+   PASO 3: PROCESANDO
+======================================== */
+.processing-card {
+  text-align: center;
+}
+
+.processing-animation {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 32px;
+}
+
+.spinner {
+  width: 120px;
+  height: 120px;
+  border: 4px solid #e0f7fa;
+  border-top: 4px solid #2573d6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pulse-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 48px;
+  color: #2573d6;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+}
+
+.processing-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0288d1;
+  margin-bottom: 12px;
+}
+
+.processing-text {
+  font-size: 1rem;
+  color: #666;
+  margin-bottom: 32px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e0f7fa;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #1772fe 10%, #66a3ff 90%);
+  width: 0%;
+  transition: width 0.3s ease;
+  animation: progressGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes progressGlow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(23, 114, 254, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(23, 114, 254, 0.5);
+  }
+}
+
+.processing-tip {
+  font-size: 0.9rem;
+  color: #666;
+  font-style: italic;
+}
+
+/* ========================================
+   PASO 4: RESULTADOS
+======================================== */
+.results-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.success-icon {
+  font-size: 64px;
+  color: #00c853;
+  display: block;
+  margin-bottom: 16px;
+  animation: successBounce 0.6s ease-out;
+}
+
+@keyframes successBounce {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.results-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0288d1;
+  margin-bottom: 8px;
+}
+
+.results-subtitle {
+  font-size: 1rem;
+  color: #666;
+}
+
+/* ========================================
+   FORMULARIO EXTRAÍDO (ESTILO MYVITA)
+======================================== */
+.extracted-form {
+  margin-top: 24px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.08rem;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #2573d6;
+  letter-spacing: 0.01em;
+}
+
+.form-label .material-icons {
+  font-size: 20px;
+  color: #2573d6;
+}
+
+.form-control,
+.form-select {
+  width: 100%;
+  background: #f5f8fa;
+  border: 2.2px solid #dde6f2;
+  border-radius: 16px;
+  font-size: 1.07rem;
+  padding: 13px 14px;
+  transition: border-color 0.18s;
+  font-family: 'Poppins', sans-serif;
+  outline: none;
+  color: #222;
+  font-weight: 500;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #2573d6;
+  background: #eef6fe;
+  box-shadow: 0 0 0 0.25rem rgba(37, 115, 214, 0.15);
+}
+
+textarea.form-control {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.duration-inputs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.duration-inputs input {
+  flex: 1;
+}
+
+.duration-label {
+  font-weight: 500;
+  color: #666;
+}
+
+/* ========================================
+   IMAGEN ADJUNTA
+======================================== */
+.attached-image {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: #f5f8fa;
+  border-radius: 16px;
+  border: 2.2px solid #dde6f2;
+}
+
+.attached-image .material-icons {
+  color: #00c853;
+  font-size: 28px;
+}
+
+.attached-image span:last-child {
+  font-weight: 600;
+  color: #222;
+}
+
+/* ========================================
+   ACCIONES DEL FORMULARIO
+======================================== */
+.form-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* ========================================
+   NAVEGACIÓN INFERIOR (ESTILO MYVITA)
+======================================== */
+.bottom-nav {
+  background: #fff;
+  box-shadow: 0 -2px 16px rgba(37, 115, 214, 0.09), 0 2px 4px rgba(37, 115, 214, 0.06);
+  border-top-left-radius: 25px;
+  border-top-right-radius: 25px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+}
+
+.bottom-nav nav {
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0;
+}
+
+.nav-item {
+  color: #2573d6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 13px;
+  text-decoration: none;
+  transition: all 0.3s;
+  font-weight: 500;
+  margin: 0 2px;
+  border-radius: 13px;
+  padding: 2px 8px;
+}
+
+.nav-item .material-icons {
+  font-size: 21px;
+  margin-bottom: 3px;
+}
+
+.nav-item.active,
+.nav-item:active {
+  color: #fff;
+  background: linear-gradient(90deg, #1772fe 10%, #66a3ff 90%);
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(23, 114, 254, 0.09);
+}
+
+/* ========================================
+   NOTIFICACIONES (ESTILO MYVITA)
+======================================== */
+#notificaciones-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.notificacion {
+  pointer-events: auto;
+  max-width: 320px;
+  padding: 16px 20px;
+  border-radius: 14px;
+  color: white;
+  font-weight: 500;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  transform: translateX(400px);
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.notificacion.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.notificacion.exito {
+  background: #00c853;
+}
+
+.notificacion.error {
+  background: #ff5252;
+}
+
+.notificacion.advertencia {
+  background: #ffab00;
+}
+
+.notificacion.info {
+  background: #29b6f6;
+}
+
+.notificacion .material-icons {
+  font-size: 1.4rem;
+  min-width: 24px;
+  text-align: center;
+}
+
+.notificacion button {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.3rem;
+  cursor: pointer;
+  opacity: 0.8;
+  padding: 4px;
+  border-radius: 50%;
+  transition: opacity 0.2s;
+}
+
+.notificacion button:hover {
+  opacity: 1;
+}
+
+/* ========================================
+   MODO OSCURO
+======================================== */
+body.dark-mode {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #f1f5f9;
+}
+
+body.dark-mode .app-header,
+body.dark-mode .instructions-card,
+body.dark-mode .preview-card,
+body.dark-mode .processing-card,
+body.dark-mode .results-card,
+body.dark-mode .bottom-nav {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+body.dark-mode .titulo-app,
+body.dark-mode .instruction-title {
+  background: linear-gradient(90deg, #60a5fa, #34d399);
+  -webkit-text-fill-color: transparent;
+}
+
+body.dark-mode .back-button {
+  color: #60a5fa;
+}
+
+body.dark-mode .back-button:hover {
+  background: #334155;
+}
+
+body.dark-mode .instruction-icon {
+  background: linear-gradient(90deg, #60a5fa, #34d399);
+}
+
+body.dark-mode .instruction-list li {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+body.dark-mode .instruction-text,
+body.dark-mode .processing-text,
+body.dark-mode .results-subtitle,
+body.dark-mode .processing-tip {
+  color: #cbd5e1;
+}
+
+body.dark-mode .form-label {
+  color: #60a5fa;
+}
+
+body.dark-mode .form-control,
+body.dark-mode .form-select {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus {
+  background: #1e293b;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 0.25rem rgba(96, 165, 250, 0.15);
+}
+
+body.dark-mode .attached-image {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+body.dark-mode .progress-bar {
+  background: #334155;
+}
+
+body.dark-mode .progress-fill {
+  background: linear-gradient(90deg, #60a5fa, #34d399);
+}
+
+body.dark-mode .spinner {
+  border-color: #334155;
+  border-top-color: #60a5fa;
+}
+
+body.dark-mode .pulse-icon {
+  color: #60a5fa;
+}
+
+body.dark-mode .btn-secondary {
+  background: #0f172a;
+  color: #60a5fa;
+  border-color: #60a5fa;
+}
+
+body.dark-mode .btn-secondary:hover {
+  background: #1e293b;
+}
+
+body.dark-mode .nav-item {
+  color: #cbd5e1;
+}
+
+body.dark-mode .nav-item.active {
+  color: #fff;
+}
+
+body.dark-mode .preview-title,
+body.dark-mode .processing-title,
+body.dark-mode .results-title {
+  color: #60a5fa;
+}
+
+body.dark-mode .duration-label {
+  color: #cbd5e1;
+}
+
+/* ========================================
+   RESPONSIVE
+======================================== */
+@media (max-width: 540px) {
+  .titulo-app {
+    font-size: 1.5rem;
+  }
+
+  .instructions-card,
+  .preview-card,
+  .processing-card,
+  .results-card {
+    padding: 18px 6vw 12px 6vw;
+    margin: 16px 0 12px 0;
+    max-width: 98vw;
+  }
+
+  .app-content {
+    padding: 7vw 2vw 70px 2vw;
+  }
+
+  .instruction-title,
+  .results-title {
+    font-size: 1.3rem;
+  }
+
+  .instruction-icon {
+    width: 70px;
+    height: 70px;
+  }
+
+  .instruction-icon .material-icons {
+    font-size: 36px;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 14px 20px;
+    font-size: 1rem;
+  }
+
+  .processing-animation {
+    width: 100px;
+    height: 100px;
+  }
+
+  .spinner {
+    width: 100px;
+    height: 100px;
+  }
+
+  .pulse-icon {
+    font-size: 40px;
+  }
+
+  .form-label {
+    font-size: 0.9rem;
+  }
+
+  .back-button {
+    left: 8px;
+    padding: 6px 8px;
+  }
+
+  .back-text {
+    display: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .instruction-title {
+    font-size: 1.2rem;
+  }
+
+  .form-label {
+    font-size: 0.85rem;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 12px 16px;
+    font-size: 0.95rem;
+  }
+} 
+/* ===== BOTÓN MENÚ FIJO ===== */
+.menu-shortcut {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 58px;
+  height: 58px;
+  background: linear-gradient(135deg, #7c4dff, #5e35b1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 25px rgba(0,0,0,.35);
+  cursor: pointer;
+  z-index: 9999;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.menu-shortcut:hover {
+  transform: translateX(-50%) scale(1.08);
+  box-shadow: 0 16px 30px rgba(0,0,0,.45);
+}
+
+.menu-shortcut span {
+  color: #fff;
+  font-size: 30px;
+}

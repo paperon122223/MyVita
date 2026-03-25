@@ -1,0 +1,616 @@
+/* ================================================================
+   UI-ENHANCEMENTS.CSS — Mejoras de UX/UI para MyVita
+   Componentes reutilizables, estados y micro-interacciones
+   Complementa main.css — importar DESPUÉS de main.css
+   ================================================================ */
+
+/* ================================================================
+   1. NOTIFICACIONES TOAST MEJORADAS
+   ================================================================ */
+#notificaciones-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+  max-width: calc(100vw - 40px);
+}
+
+.notificacion {
+  pointer-events: auto;
+  max-width: 380px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  color: white;
+  font-weight: 500;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.2);
+  transform: translateX(120%);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.68,-0.55,0.265,1.55),
+              opacity 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.notificacion::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: rgba(255,255,255,.5);
+}
+.notificacion.show { transform: translateX(0); opacity: 1; }
+.notificacion.exito      { background: linear-gradient(135deg,#00c853,#00a344); }
+.notificacion.error      { background: linear-gradient(135deg,#ff5252,#d32f2f); }
+.notificacion.advertencia{ background: linear-gradient(135deg,#ffab00,#ff8f00); }
+.notificacion.info       { background: linear-gradient(135deg,#29b6f6,#0288d1); }
+
+.notificacion .material-icons { font-size: 24px; flex-shrink: 0; }
+
+.notificacion button {
+  margin-left: auto;
+  background: rgba(255,255,255,.2); border: none; color: white;
+  width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .2s, transform .2s; flex-shrink: 0;
+}
+.notificacion button:hover  { background: rgba(255,255,255,.35); transform: scale(1.1); }
+.notificacion button:active { transform: scale(.95); }
+.notificacion button .material-icons { font-size: 18px; }
+
+/* Barra de progreso auto-cierre */
+.notificacion::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0;
+  height: 3px; background: rgba(255,255,255,.4);
+  width: 100%; transform-origin: left;
+  animation: notifProgress 3.5s linear forwards;
+}
+@keyframes notifProgress {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+.notificacion:hover::after { animation-play-state: paused; }
+
+@media (max-width: 480px) {
+  #notificaciones-container { top: 10px; right: 10px; left: 10px; }
+  .notificacion { max-width: 100%; padding: 14px 16px; font-size: .9rem; }
+}
+
+/* ================================================================
+   2. ESTADOS DE CARGA (SKELETON)
+   ================================================================ */
+.skeleton {
+  background: linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+@keyframes skeleton-loading {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skeleton-text         { height: 1em;   margin-bottom: .5em; }
+.skeleton-text:last-child { width: 80%; }
+.skeleton-title        { height: 1.5em; width: 60%; margin-bottom: 1em; }
+.skeleton-circle       { border-radius: 50%; width: 48px; height: 48px; }
+.skeleton-card         { height: 120px; margin-bottom: 12px; border-radius: 20px; }
+.skeleton-bar          { height: 8px;   border-radius: 99px; }
+
+body.dark-mode .skeleton {
+  background: linear-gradient(90deg,#334155 25%,#475569 50%,#334155 75%);
+  background-size: 200% 100%;
+}
+
+/* Plantilla skeleton para tarjeta de medicamento */
+.skeleton-med-card {
+  background: white; border-radius: 20px;
+  padding: 16px 18px; margin-bottom: 12px;
+  box-shadow: 0 3px 14px rgba(0,0,0,.07);
+}
+.skeleton-med-card .sk-row {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+}
+body.dark-mode .skeleton-med-card { background: #1e293b; }
+
+/* ================================================================
+   3. ESTADOS VACÍOS MEJORADOS
+   ================================================================ */
+.empty-state {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 60px 24px; text-align: center;
+  animation: emptyStateFadeIn .6s ease;
+}
+@keyframes emptyStateFadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.empty-state-icon {
+  width: 100px; height: 100px;
+  background: linear-gradient(135deg,#e0f2fe,#dcfce7);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 24px;
+  animation: emptyStateFloat 3s ease-in-out infinite;
+}
+@keyframes emptyStateFloat {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+.empty-state-icon .material-icons {
+  font-size: 48px;
+  background: var(--grad);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.empty-state h3 { font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.empty-state p  { font-size: .9rem; color: var(--muted); max-width: 260px; line-height: 1.6; }
+.empty-state-action { margin-top: 24px; }
+
+body.dark-mode .empty-state-icon { background: linear-gradient(135deg,#1e3a5f,#1e3a3f); }
+body.dark-mode .empty-state h3   { color: #f1f5f9; }
+body.dark-mode .empty-state p    { color: #94a3b8; }
+
+/* ================================================================
+   4. BOTONES — efecto ripple y hover
+   ================================================================ */
+.btn-primary {
+  background: var(--grad); color: white; border: none;
+  padding: 14px 28px; border-radius: 14px;
+  font-weight: 700; font-size: .95rem; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all .3s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 4px 16px rgba(2,136,209,.3);
+  position: relative; overflow: hidden;
+}
+.btn-primary::before {
+  content: '';
+  position: absolute; top: 50%; left: 50%;
+  width: 0; height: 0;
+  background: rgba(255,255,255,.2); border-radius: 50%;
+  transform: translate(-50%,-50%);
+  transition: width .5s, height .5s;
+}
+.btn-primary:hover::before { width: 300px; height: 300px; }
+.btn-primary:hover  { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(2,136,209,.4); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+.btn-secondary {
+  background: transparent; color: var(--muted);
+  border: 2px solid var(--border);
+  padding: 12px 24px; border-radius: 14px;
+  font-weight: 600; font-size: .95rem; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all .2s;
+}
+.btn-secondary:hover { border-color: var(--blue); color: var(--blue); background: rgba(2,136,209,.05); }
+
+.btn-danger {
+  background: linear-gradient(135deg,#ff5252,#d32f2f); color: white; border: none;
+  padding: 14px 28px; border-radius: 14px;
+  font-weight: 700; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all .3s; box-shadow: 0 4px 16px rgba(255,82,82,.3);
+}
+.btn-danger:hover  { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,82,82,.4); }
+.btn-danger:active { transform: translateY(0); }
+
+/* FAB — Botón flotante de acción */
+.fab {
+  position: fixed; bottom: 90px; right: 20px;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--grad); color: white; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 20px rgba(2,136,209,.4);
+  transition: all .3s cubic-bezier(.4,0,.2,1); z-index: 100;
+}
+.fab:hover  { transform: scale(1.1) rotate(90deg); box-shadow: 0 8px 30px rgba(2,136,209,.5); }
+.fab:active { transform: scale(.95); }
+.fab .material-icons { font-size: 24px; }
+
+/* Ripple genérico */
+.ripple { position: relative; overflow: hidden; }
+.ripple::after {
+  content: '';
+  position: absolute; width: 100%; height: 100%; top: 0; left: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle,rgba(255,255,255,.3) 10%,transparent 10.01%);
+  background-repeat: no-repeat; background-position: 50%;
+  transform: scale(10,10); opacity: 0;
+  transition: transform .5s, opacity 1s;
+}
+.ripple:active::after { transform: scale(0,0); opacity: .3; transition: 0s; }
+
+/* ================================================================
+   5. TARJETAS — hover, press y swipe
+   ================================================================ */
+.card-hover {
+  transition: all .3s cubic-bezier(.4,0,.2,1); cursor: pointer;
+}
+.card-hover:hover  { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(2,136,209,.15); }
+.card-hover:active { transform: translateY(-1px); }
+
+/* Swipe-to-delete hint (visual) */
+.card-swipeable { position: relative; overflow: hidden; }
+.card-swipeable::after {
+  content: '';
+  position: absolute; right: 0; top: 0; bottom: 0; width: 60px;
+  background: linear-gradient(to left, rgba(255,82,82,.12), transparent);
+  opacity: 0; transition: opacity .3s; pointer-events: none;
+}
+.card-swipeable:active::after { opacity: 1; }
+
+/* ================================================================
+   6. INPUTS MEJORADOS — label flotante
+   ================================================================ */
+.form-control-enhanced {
+  width: 100%; padding: 14px 16px;
+  border: 2px solid var(--border); border-radius: 12px;
+  font-size: .95rem; font-family: inherit;
+  transition: all .2s; background: white; color: var(--text);
+  outline: none; -webkit-appearance: none;
+}
+.form-control-enhanced:focus {
+  border-color: var(--blue); box-shadow: 0 0 0 4px rgba(2,136,209,.1);
+}
+.form-control-enhanced::placeholder { color: #9ca3af; }
+
+/* Label flotante */
+.form-floating { position: relative; }
+.form-floating label {
+  position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+  color: #9ca3af; font-size: .95rem; pointer-events: none;
+  transition: all .2s; background: white; padding: 0 4px;
+}
+.form-floating input:focus + label,
+.form-floating input:not(:placeholder-shown) + label,
+.form-floating textarea:focus + label,
+.form-floating textarea:not(:placeholder-shown) + label {
+  top: 0; font-size: .75rem; color: var(--blue);
+  font-weight: 600; letter-spacing: .03em;
+}
+
+body.dark-mode .form-control-enhanced { background: #0f172a; border-color: #334155; color: #f1f5f9; }
+body.dark-mode .form-floating label  { background: #0f172a; color: #64748b; }
+
+/* ================================================================
+   7. BADGES Y ETIQUETAS
+   ================================================================ */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 20px;
+  font-size: .72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.badge-success  { background: #dcfce7; color: #166534; }
+.badge-warning  { background: #fef3c7; color: #92400e; }
+.badge-danger   { background: #fee2e2; color: #991b1b; }
+.badge-info     { background: #e0f2fe; color: #075985; }
+.badge-neutral  { background: #f1f5f9; color: #475569; }
+
+/* Dot indicator */
+.badge-dot {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: .78rem; font-weight: 600;
+}
+.badge-dot::before {
+  content: ''; width: 8px; height: 8px; border-radius: 50%;
+  background: currentColor; flex-shrink: 0;
+}
+
+body.dark-mode .badge-success { background: #14532d; color: #86efac; }
+body.dark-mode .badge-warning { background: #78350f; color: #fcd34d; }
+body.dark-mode .badge-danger  { background: #7f1d1d; color: #fca5a5; }
+body.dark-mode .badge-info    { background: #0c4a6e; color: #7dd3fc; }
+body.dark-mode .badge-neutral { background: #1e293b; color: #94a3b8; }
+
+/* ================================================================
+   8. SPINNERS DE CARGA
+   ================================================================ */
+.spinner {
+  width: 40px; height: 40px;
+  border: 3px solid rgba(2,136,209,.15);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spinnerRotate .8s linear infinite;
+  flex-shrink: 0;
+}
+.spinner-sm { width: 20px; height: 20px; border-width: 2px; }
+.spinner-lg { width: 56px; height: 56px; border-width: 4px; }
+@keyframes spinnerRotate { to { transform: rotate(360deg); } }
+
+/* Spinner de puntos (más suave) */
+.spinner-dots {
+  display: flex; gap: 6px; align-items: center;
+}
+.spinner-dots span {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--blue); display: block;
+  animation: dotBounce 1.2s ease-in-out infinite;
+}
+.spinner-dots span:nth-child(2) { animation-delay: .15s; }
+.spinner-dots span:nth-child(3) { animation-delay: .3s; }
+@keyframes dotBounce {
+  0%,80%,100% { transform: scale(.7); opacity: .5; }
+  40%          { transform: scale(1);  opacity: 1; }
+}
+
+/* ================================================================
+   9. TRANSICIONES DE PÁGINA
+   ================================================================ */
+/* Agregar .page-transition al body al navegar */
+.page-out {
+  animation: pageOut .25s ease forwards;
+  pointer-events: none;
+}
+.page-in {
+  animation: pageIn .3s ease forwards;
+}
+@keyframes pageOut {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(-30px); }
+}
+@keyframes pageIn {
+  from { opacity: 0; transform: translateX(30px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Slide vertical para bottom-sheets */
+@keyframes slideUpPage {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.slide-up-page { animation: slideUpPage .3s ease; }
+
+/* ================================================================
+   10. SCROLLBAR PERSONALIZADA
+   ================================================================ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+body.dark-mode ::-webkit-scrollbar-thumb { background: #475569; }
+body.dark-mode ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+/* ================================================================
+   11. ACCESIBILIDAD — FOCUS VISIBLE
+   ================================================================ */
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* ================================================================
+   12. ANIMACIONES DE ENTRADA
+   ================================================================ */
+.fade-in   { animation: fadeIn .5s ease; }
+.slide-up  { animation: slideUp .45s ease; }
+.slide-right { animation: slideInRight .4s ease; }
+.scale-in  { animation: scaleIn .3s cubic-bezier(.34,1.56,.64,1); }
+.bounce-in { animation: bounceIn .5s cubic-bezier(.34,1.56,.64,1); }
+
+@keyframes fadeIn      { from { opacity: 0; }                              to { opacity: 1; } }
+@keyframes slideUp     { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideInRight{ from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes scaleIn     { from { opacity: 0; transform: scale(.9); }        to { opacity: 1; transform: scale(1); } }
+@keyframes bounceIn    { from { opacity: 0; transform: scale(.7); }        to { opacity: 1; transform: scale(1); } }
+
+/* Stagger helper — aplica a listas con JS: el[i].style.animationDelay = i*80+'ms' */
+.stagger-list > * {
+  animation: slideUp .4s ease both;
+}
+
+/* ================================================================
+   13. PULSE PARA NOTIFICACIONES Y ALERTAS
+   ================================================================ */
+.pulse-ring { position: relative; }
+.pulse-ring::before {
+  content: '';
+  position: absolute; top: 50%; left: 50%;
+  width: 100%; height: 100%; border-radius: inherit;
+  background: inherit;
+  transform: translate(-50%,-50%);
+  animation: pulseRing 2s ease-out infinite; z-index: -1;
+}
+@keyframes pulseRing {
+  0%   { transform: translate(-50%,-50%) scale(1);   opacity: .5; }
+  100% { transform: translate(-50%,-50%) scale(1.6); opacity: 0; }
+}
+
+/* Ping puntual (como el ícono de alarma activa) */
+.ping {
+  position: relative; display: inline-flex;
+}
+.ping::before {
+  content: '';
+  position: absolute; inset: -4px; border-radius: inherit;
+  background: var(--blue); opacity: .4;
+  animation: ping 1.5s cubic-bezier(0,0,.2,1) infinite;
+}
+@keyframes ping {
+  75%,100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* ================================================================
+   14. SHIMMER (efecto brillo sobre tarjetas)
+   ================================================================ */
+.shimmer { position: relative; overflow: hidden; }
+.shimmer::after {
+  content: '';
+  position: absolute; top: 0; left: -100%; width: 60%; height: 100%;
+  background: linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);
+  animation: shimmerSlide 2s infinite;
+}
+@keyframes shimmerSlide { 100% { left: 150%; } }
+
+/* ================================================================
+   15. TEXTO GRADIENTE Y EFECTOS VISUALES
+   ================================================================ */
+.text-gradient {
+  background: var(--grad);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.text-gradient-red {
+  background: linear-gradient(135deg,#ff5252,#ffab00);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Efecto glass */
+.glass {
+  background: rgba(255,255,255,.75);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,.5);
+}
+body.dark-mode .glass {
+  background: rgba(30,41,59,.8);
+  border-color: rgba(255,255,255,.1);
+}
+
+/* Accesibilidad — solo para lectores de pantalla */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+/* ================================================================
+   16. HAPTIC FEEDBACK VISUAL (complementa vibración nativa)
+   ================================================================ */
+/* Añadir clase .haptic-press a botones importantes */
+.haptic-press:active {
+  transform: scale(.96);
+  filter: brightness(.95);
+  transition: transform .08s, filter .08s;
+}
+
+/* ================================================================
+   17. BARRA DE PROGRESO LINEAL
+   ================================================================ */
+.progress-bar {
+  width: 100%; height: 8px; background: var(--border);
+  border-radius: 99px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; border-radius: 99px;
+  background: var(--grad);
+  transition: width .5s cubic-bezier(.4,0,.2,1);
+}
+.progress-fill.danger { background: linear-gradient(90deg,#ff5252,#ff8a80); }
+.progress-fill.warn   { background: linear-gradient(90deg,#ffab00,#ffd740); }
+.progress-fill.ok     { background: linear-gradient(90deg,#00c853,#69f0ae); }
+
+/* ================================================================
+   18. TARJETA DE STAT (para dashboard y resúmenes)
+   ================================================================ */
+.stat-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: white; border-radius: 14px; padding: 10px 14px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.07);
+}
+.stat-pill-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.stat-pill-icon.blue  { background: rgba(2,136,209,.1); color: var(--blue); }
+.stat-pill-icon.green { background: rgba(0,200,83,.1);  color: var(--green); }
+.stat-pill-icon.red   { background: rgba(255,82,82,.1); color: var(--red); }
+.stat-pill-icon.warn  { background: rgba(255,171,0,.12);color: var(--warn); }
+.stat-pill-icon .material-icons { font-size: 18px; }
+.stat-pill-num   { font-size: 1.3rem; font-weight: 800; line-height: 1; color: var(--text); }
+.stat-pill-label { font-size: .68rem; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .04em; }
+
+body.dark-mode .stat-pill { background: #1e293b; }
+body.dark-mode .stat-pill-num { color: #f1f5f9; }
+
+/* ================================================================
+   19. SEPARADOR CON TEXTO
+   ================================================================ */
+.divider {
+  display: flex; align-items: center; gap: 12px;
+  color: var(--subtle); font-size: .78rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .05em; margin: 8px 0;
+}
+.divider::before, .divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* ================================================================
+   20. CHIP INTERACTIVO (seleccionable)
+   ================================================================ */
+.chip-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 20px; cursor: pointer;
+  border: 1.5px solid var(--border); background: white;
+  font-size: .8rem; font-weight: 600; color: var(--muted);
+  transition: all .2s; user-select: none; -webkit-user-select: none;
+}
+.chip-toggle:active { transform: scale(.96); }
+.chip-toggle.selected {
+  background: var(--grad); color: white; border-color: transparent;
+  box-shadow: 0 3px 10px rgba(2,136,209,.3);
+}
+.chip-toggle .material-icons { font-size: 16px; }
+
+body.dark-mode .chip-toggle { background: #1e293b; border-color: #334155; color: #94a3b8; }
+
+/* ================================================================
+   21. OVERLAY DE CONFIRMACIÓN
+   ================================================================ */
+.confirm-overlay {
+  position: fixed; inset: 0; z-index: 9500;
+  background: rgba(0,0,0,.5); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.confirm-box {
+  background: white; border-radius: 24px; padding: 28px 24px;
+  width: 100%; max-width: 320px; text-align: center;
+  animation: bounceIn .35s cubic-bezier(.34,1.56,.64,1);
+}
+.confirm-icon {
+  width: 64px; height: 64px; border-radius: 50%;
+  margin: 0 auto 16px;
+  display: flex; align-items: center; justify-content: center;
+}
+.confirm-icon.danger { background: #fee2e2; color: #ff5252; }
+.confirm-icon.warn   { background: #fef3c7; color: #ffab00; }
+.confirm-icon .material-icons { font-size: 30px; }
+.confirm-box h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 8px; }
+.confirm-box p  { font-size: .85rem; color: var(--muted); margin-bottom: 24px; line-height: 1.5; }
+.confirm-actions { display: flex; gap: 10px; }
+.confirm-actions button { flex: 1; padding: 13px; border-radius: 14px; border: none;
+  font-family: 'Poppins', sans-serif; font-weight: 700; font-size: .88rem; cursor: pointer; transition: all .15s; }
+.confirm-actions .btn-confirm-cancel { background: var(--surface); color: var(--muted); }
+.confirm-actions .btn-confirm-ok.danger { background: linear-gradient(135deg,#ff5252,#d32f2f); color: white; }
+.confirm-actions .btn-confirm-ok.warn   { background: linear-gradient(135deg,#ffab00,#ff8f00); color: white; }
+.confirm-actions .btn-confirm-ok.primary{ background: var(--grad); color: white; }
+
+body.dark-mode .confirm-box { background: #1e293b; }
+body.dark-mode .confirm-box h3 { color: #f1f5f9; }
+body.dark-mode .confirm-actions .btn-confirm-cancel { background: #334155; color: #94a3b8; }
+
+/* ================================================================
+   22. UTILIDADES ADICIONALES
+   ================================================================ */
+.truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.no-select { user-select: none; -webkit-user-select: none; }
+.pointer   { cursor: pointer; }
+.opacity-0 { opacity: 0; }
+.opacity-50{ opacity: .5; }
+.hidden    { display: none !important; }
+.invisible { visibility: hidden; }

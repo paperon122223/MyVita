@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="css/main.css">
+  <title>Diario · MyVita</title>
+
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/home.css">
+  <link rel="stylesheet" href="css/ui-enhancements.css">
+  <link rel="stylesheet" href="css/dark-mode.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/menu-bottom.css">
+  <link rel="stylesheet" href="css/diary.css">
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- Header -->
+    <header class="diary-header">
+      <button class="btn-icon" onclick="history.back()">
+        <span class="material-icons">arrow_back</span>
+      </button>
+      <h1>Mi Diario</h1>
+      <button class="btn-icon" id="btnNuevaEntrada">
+        <span class="material-icons">add</span>
+      </button>
+    </header>
+
+    <main class="app-content" style="padding: 0 0 90px;">
+
+      <!-- Tira de los últimos 7 días con estado de ánimo -->
+      <div class="mood-strip" id="moodStrip">
+        <!-- Se rellena con JS -->
+      </div>
+
+      <!-- Filtros -->
+      <div class="filter-bar" id="filterBar">
+        <button class="filter-chip active" data-filter="all">Todos</button>
+        <button class="filter-chip" data-filter="5">😄 Excelente</button>
+        <button class="filter-chip" data-filter="4">😊 Bien</button>
+        <button class="filter-chip" data-filter="3">😐 Regular</button>
+        <button class="filter-chip" data-filter="2">😔 Mal</button>
+        <button class="filter-chip" data-filter="1">😞 Muy mal</button>
+      </div>
+
+      <!-- Lista de entradas -->
+      <div class="diary-list" id="diaryList">
+        <div class="diary-empty">
+          <div class="empty-icon">
+            <span class="material-icons">hourglass_empty</span>
+          </div>
+          <h3>Cargando...</h3>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Menú inferior -->
+    <div id="menuContainer"></div>
+
+  </div><!-- /app-container -->
+
+  <!-- ═══════════════════════════════════════════
+       MODAL — Nueva / Editar entrada
+  ═══════════════════════════════════════════ -->
+  <div class="modal-backdrop" id="modalEntrada">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+
+      <div class="modal-title-row">
+        <h2 id="modalTitulo">Nueva entrada</h2>
+        <button class="btn-modal-close" id="btnCerrarModal">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+
+      <!-- Fecha -->
+      <div class="form-section">
+        <label class="form-label">Fecha</label>
+        <input type="date" class="date-input" id="entradaFecha">
+      </div>
+
+      <!-- Estado de ánimo -->
+      <div class="form-section">
+        <label class="form-label">¿Cómo te sientes?</label>
+        <div class="mood-selector">
+          <button class="mood-btn m1" data-val="1">😞<span class="label">Muy mal</span></button>
+          <button class="mood-btn m2" data-val="2">😔<span class="label">Mal</span></button>
+          <button class="mood-btn m3" data-val="3">😐<span class="label">Regular</span></button>
+          <button class="mood-btn m4" data-val="4">😊<span class="label">Bien</span></button>
+          <button class="mood-btn m5" data-val="5">😄<span class="label">Excelente</span></button>
+        </div>
+      </div>
+
+      <!-- Síntomas rápidos -->
+      <div class="form-section">
+        <label class="form-label">Síntomas (toca los que apliquen)</label>
+        <div class="sintomas-grid" id="sintomasGrid">
+          <button class="sintoma-chip malo" data-s="Dolor de cabeza">🤕 Dolor de cabeza</button>
+          <button class="sintoma-chip malo" data-s="Náuseas">🤢 Náuseas</button>
+          <button class="sintoma-chip malo" data-s="Mareos">💫 Mareos</button>
+          <button class="sintoma-chip malo" data-s="Fatiga">😴 Fatiga</button>
+          <button class="sintoma-chip malo" data-s="Dolor muscular">💪 Dolor muscular</button>
+          <button class="sintoma-chip malo" data-s="Fiebre">🌡️ Fiebre</button>
+          <button class="sintoma-chip malo" data-s="Insomnio">🌙 Insomnio</button>
+          <button class="sintoma-chip malo" data-s="Falta de apetito">🍽️ Sin apetito</button>
+          <button class="sintoma-chip" data-s="Bien descansado">✅ Bien descansado</button>
+          <button class="sintoma-chip" data-s="Con energía">⚡ Con energía</button>
+          <button class="sintoma-chip" data-s="Sin síntomas">🙌 Sin síntomas</button>
+        </div>
+      </div>
+
+      <!-- Notas libres -->
+      <div class="form-section">
+        <label class="form-label">Notas adicionales</label>
+        <textarea class="diary-textarea" id="entradaNotas"
+          rows="4" placeholder="¿Algo más que quieras recordar? Cómo te fue con los medicamentos, efectos que notaste..."></textarea>
+      </div>
+
+      <button class="btn-guardar" id="btnGuardarEntrada">
+        <span class="material-icons">save</span> Guardar entrada
+      </button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="cordova.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/dark-mode.js"></script>
+  <script src="js/menu-bottom.js"></script>
+  <script src="js/animations.js"></script>
+  <script src="js/diary.js"></script>
+</body>
+</html>

@@ -1,0 +1,434 @@
+/* ========================================
+   ESTILOS MODERNOS PARA MAPA - MAPBOX
+======================================== */
+
+/* Contenedor del mapa */
+#map {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+}
+
+/* ========================================
+   MARCADOR DE USUARIO (PERSONALIZADO)
+======================================== */
+.user-marker {
+  width: 30px;
+  height: 30px;
+  position: relative;
+  cursor: pointer;
+}
+
+.user-marker-dot {
+  width: 16px;
+  height: 16px;
+  background: #0288d1;
+  border: 3px solid white;
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 2;
+}
+
+.user-marker-pulse {
+  width: 30px;
+  height: 30px;
+  background: rgba(2, 136, 209, 0.3);
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: pulse 2s ease-out infinite;
+  z-index: 1;
+}
+
+@keyframes pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+}
+
+/* ========================================
+   MARCADORES DE POI
+======================================== */
+.poi-marker {
+  width: 36px;
+  height: 36px;
+  border-radius: 50% 50% 50% 0;
+  background: #e74c3c;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  font-size: 18px;
+}
+
+.poi-marker:hover {
+  transform: rotate(-45deg) scale(1.1);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Rotar el emoji dentro del marcador */
+.poi-marker::before {
+  content: attr(data-icon);
+  transform: rotate(45deg);
+  display: block;
+}
+
+/* ========================================
+   POPUPS PERSONALIZADOS
+======================================== */
+.mapboxgl-popup-content {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  font-family: 'Poppins', sans-serif;
+  min-width: 200px;
+}
+
+.mapboxgl-popup-close-button {
+  font-size: 24px;
+  padding: 8px;
+  color: #666;
+  right: 8px;
+  top: 8px;
+}
+
+.mapboxgl-popup-close-button:hover {
+  background: #f0f0f0;
+  border-radius: 50%;
+  color: #333;
+}
+
+.marker-popup h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0288d1;
+  margin: 0 0 8px 0;
+}
+
+.marker-popup p {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 4px 0;
+  line-height: 1.4;
+}
+
+.marker-popup strong {
+  color: #333;
+  font-weight: 600;
+}
+
+.marker-popup a {
+  color: #0288d1;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.marker-popup a:hover {
+  text-decoration: underline;
+}
+
+/* ========================================
+   CONTROLES DE NAVEGACIÓN
+======================================== */
+.mapboxgl-ctrl-group {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.mapboxgl-ctrl-group button {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mapboxgl-ctrl-group button:hover {
+  background: #f0f7ff;
+}
+
+/* ========================================
+   SELECTOR DE ESTILO
+======================================== */
+.style-selector-btn {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+  width: 48px;
+  height: 48px;
+  background: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+.style-selector-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.style-selector-btn:active {
+  transform: scale(0.95);
+}
+
+.style-menu {
+  position: absolute;
+  top: 20px;
+  left: 80px;
+  z-index: 1000;
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  min-width: 200px;
+  animation: slideIn 0.3s ease-out;
+}
+
+.style-menu.hidden {
+  display: none;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.style-menu h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0288d1;
+  margin: 0 0 12px 0;
+}
+
+.style-menu button {
+  width: 100%;
+  padding: 12px 16px;
+  background: #f8fbff;
+  border: 2px solid #e0f7fa;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+  margin-bottom: 8px;
+  text-align: left;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.style-menu button:hover {
+  background: #e0f7fa;
+  border-color: #0288d1;
+  transform: translateX(4px);
+}
+
+.style-menu button:active {
+  transform: translateX(2px);
+}
+
+/* ========================================
+   PANEL DE INFORMACIÓN
+======================================== */
+.info-panel {
+  position: absolute;
+  bottom: 100px;
+  left: 20px;
+  right: 20px;
+  z-index: 1000;
+  background: white;
+  border-radius: 16px;
+  padding: 16px 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-width: 400px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.info-row:last-child {
+  margin-bottom: 0;
+}
+
+.info-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #666;
+}
+
+.info-value {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #0288d1;
+  font-family: monospace;
+}
+
+.status-message {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.status-searching {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.status-success {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-error {
+  background: #ffebee;
+  color: #c62828;
+}
+
+/* ========================================
+   MODO OSCURO
+======================================== */
+body.dark-mode .mapboxgl-popup-content {
+  background: #1e293b;
+  color: #f1f5f9;
+}
+
+body.dark-mode .marker-popup h3 {
+  color: #60a5fa;
+}
+
+body.dark-mode .marker-popup p {
+  color: #cbd5e1;
+}
+
+body.dark-mode .marker-popup strong {
+  color: #f1f5f9;
+}
+
+body.dark-mode .style-selector-btn,
+body.dark-mode .style-menu,
+body.dark-mode .info-panel {
+  background: #1e293b;
+  color: #f1f5f9;
+}
+
+body.dark-mode .style-menu h4 {
+  color: #60a5fa;
+}
+
+body.dark-mode .style-menu button {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+body.dark-mode .style-menu button:hover {
+  background: #334155;
+  border-color: #60a5fa;
+}
+
+body.dark-mode .info-label {
+  color: #cbd5e1;
+}
+
+body.dark-mode .info-value {
+  color: #60a5fa;
+}
+
+/* ========================================
+   RESPONSIVE
+======================================== */
+@media (max-width: 480px) {
+  .style-selector-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    top: 15px;
+    left: 15px;
+  }
+  
+  .style-menu {
+    left: 65px;
+    top: 15px;
+    min-width: 160px;
+    padding: 12px;
+  }
+  
+  .info-panel {
+    bottom: 80px;
+    left: 10px;
+    right: 10px;
+    padding: 12px 16px;
+  }
+  
+  .poi-marker {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+}
+
+/* ========================================
+   ANIMACIONES DE CARGA
+======================================== */
+.map-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 1001;
+}
+
+.map-loading .spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e0f7fa;
+  border-top-color: #0288d1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.map-loading p {
+  margin-top: 16px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0288d1;
+}

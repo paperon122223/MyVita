@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="css/main.css">
+  <title>Escanear Receta - MyVita</title>
+  
+  <!-- Bootstrap CSS -->
+  
+  <!-- Google Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Animate CSS -->
+  
+  <!-- Estilos principales -->
+  <link rel="stylesheet" href="css/home.css">
+  <link rel="stylesheet" href="css/ui-enhancements.css">
+  <link rel="stylesheet" href="css/scan.css">
+  <!-- CSS del modo oscuro -->
+  <link rel="stylesheet" href="css/dark-mode.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/menu-bottom.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Encabezado -->
+    <header class="app-header">
+      <button id="backButton" class="back-button">
+        <span class="material-icons">arrow_back</span>
+        <span class="back-text">Volver</span>
+      </button>
+      <h1 class="titulo-app">Escanear Receta</h1>
+    </header>
+
+    <!-- Contenido principal -->
+    <main class="app-content">
+      
+      <!-- PASO 1: Instrucciones y captura -->
+      <div id="step1" class="scan-step active">
+        <div class="instructions-card animate__animated animate__fadeIn">
+          <div class="instruction-icon">
+            <span class="material-icons">camera_alt</span>
+          </div>
+          <h2 class="instruction-title">Escanea tu Receta Médica</h2>
+          <p class="instruction-text">
+            Toma una foto clara de tu receta. Asegúrate de que:
+          </p>
+          <ul class="instruction-list">
+            <li><span class="material-icons">check_circle</span> La imagen esté bien iluminada</li>
+            <li><span class="material-icons">check_circle</span> Todo el texto sea legible</li>
+            <li><span class="material-icons">check_circle</span> La receta esté completa en el encuadre</li>
+          </ul>
+          
+          <div class="camera-container" id="cameraContainer">
+            <video id="videoPreview" autoplay playsinline></video>
+            <canvas id="canvas" style="display: none;"></canvas>
+            <div class="camera-overlay">
+              <div class="scan-frame"></div>
+            </div>
+          </div>
+          
+          <div class="action-buttons">
+            <button id="startCameraBtn" class="btn-primary">
+              <span class="material-icons">camera_alt</span>
+              Abrir Cámara
+            </button>
+            <button id="captureBtn" class="btn-primary" style="display: none;">
+              <span class="material-icons">photo_camera</span>
+              Capturar Foto
+            </button>
+            <button id="uploadBtn" class="btn-secondary">
+              <span class="material-icons">upload_file</span>
+              Subir desde Galería
+            </button>
+            <input type="file" id="fileInput" accept="image/*" style="display: none;">
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 2: Preview y confirmación -->
+      <div id="step2" class="scan-step">
+        <div class="preview-card animate__animated animate__fadeIn">
+          <h2 class="preview-title">Vista Previa</h2>
+          <div class="image-preview-container">
+            <img id="imagePreview" src="" alt="Preview">
+          </div>
+          
+          <div class="preview-actions">
+            <button id="retakeBtn" class="btn-secondary">
+              <span class="material-icons">refresh</span>
+              Tomar Otra Foto
+            </button>
+            <button id="processBtn" class="btn-primary">
+              <span class="material-icons">auto_awesome</span>
+              Procesar Receta
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 3: Procesando -->
+      <div id="step3" class="scan-step">
+        <div class="processing-card animate__animated animate__fadeIn">
+          <div class="processing-animation">
+            <div class="spinner"></div>
+            <span class="material-icons pulse-icon">description</span>
+          </div>
+          <h2 class="processing-title">Procesando Receta...</h2>
+          <p class="processing-text">Extrayendo información médica</p>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <p class="processing-tip" id="processingTip">Analizando texto...</p>
+        </div>
+      </div>
+
+      <!-- PASO 4: Resultados -->
+      <div id="step4" class="scan-step">
+        <div class="results-card animate__animated animate__fadeIn">
+          <div class="results-header">
+            <span class="material-icons success-icon">check_circle</span>
+            <h2 class="results-title">¡Receta Escaneada!</h2>
+            <p class="results-subtitle">Revisa y confirma la información</p>
+          </div>
+
+          <form id="extractedDataForm" class="extracted-form">
+            <!-- Medicamento -->
+            <div class="form-group">
+              <label for="medicamento" class="form-label">
+                <span class="material-icons">medication</span>
+                Medicamento
+              </label>
+              <input type="text" id="medicamento" class="form-control" placeholder="Ej: Paracetamol 500mg">
+            </div>
+
+            <!-- Dosis -->
+            <div class="form-group">
+              <label for="dosis" class="form-label">
+                <span class="material-icons">science</span>
+                Dosis
+              </label>
+              <input type="text" id="dosis" class="form-control" placeholder="Ej: 1 tableta">
+            </div>
+
+            <!-- Frecuencia -->
+            <div class="form-group">
+              <label for="frecuencia" class="form-label">
+                <span class="material-icons">schedule</span>
+                Frecuencia
+              </label>
+              <select id="frecuencia" class="form-select">
+                <option value="">Selecciona frecuencia</option>
+                <option value="una_vez_dia">Una vez al día</option>
+                <option value="dos_veces_dia">Dos veces al día</option>
+                <option value="tres_veces_dia">Tres veces al día</option>
+                <option value="cuatro_veces_dia">Cuatro veces al día</option>
+                <option value="cada_4_horas">Cada 4 horas</option>
+                <option value="cada_6_horas">Cada 6 horas</option>
+                <option value="cada_8_horas">Cada 8 horas</option>
+                <option value="cada_12_horas">Cada 12 horas</option>
+                <option value="personalizado">Personalizado</option>
+              </select>
+            </div>
+
+            <!-- Hora de toma -->
+            <div class="form-group">
+              <label for="hora_toma" class="form-label">
+                <span class="material-icons">access_time</span>
+                Hora de Primera Toma
+              </label>
+              <input type="time" id="hora_toma" class="form-control">
+            </div>
+
+            <!-- Fecha fin -->
+            <div class="form-group">
+              <label for="fecha_fin" class="form-label">
+                <span class="material-icons">event</span>
+                Fecha de fin (opcional)
+              </label>
+              <input type="date" id="fecha_fin" class="form-control">
+            </div>
+
+            <!-- Fecha de inicio -->
+            <div class="form-group">
+              <label for="fecha_inicio" class="form-label">
+                <span class="material-icons">calendar_today</span>
+                Fecha de Inicio
+              </label>
+              <input type="date" id="fecha_inicio" class="form-control">
+            </div>
+
+            <!-- Vía de administración -->
+            <div class="form-group">
+              <label for="via_administracion" class="form-label">
+                <span class="material-icons">local_hospital</span>
+                Vía de Administración
+              </label>
+              <select id="via_administracion" class="form-select">
+                <option value="oral">Oral</option>
+                <option value="sublingual">Sublingual</option>
+                <option value="topica">Tópica</option>
+                <option value="intravenosa">Intravenosa</option>
+                <option value="intramuscular">Intramuscular</option>
+                <option value="subcutanea">Subcutánea</option>
+                <option value="inhalada">Inhalada</option>
+                <option value="rectal">Rectal</option>
+                <option value="otra">Otra</option>
+              </select>
+            </div>
+
+            <!-- Nombre del médico -->
+            <div class="form-group">
+              <label for="nombre_medico" class="form-label">
+                <span class="material-icons">person</span>
+                Médico que Prescribe
+              </label>
+              <input type="text" id="nombre_medico" class="form-control" placeholder="Dr. García López">
+            </div>
+
+            <!-- Contacto médico -->
+            <div class="form-group">
+              <label for="contacto_medico" class="form-label">
+                <span class="material-icons">phone</span>
+                Contacto médico
+              </label>
+              <input type="text" id="contacto_medico" class="form-control" placeholder="Teléfono o email">
+            </div>
+
+            <!-- Notas adicionales -->
+            <div class="form-group">
+              <label for="notas" class="form-label">
+                <span class="material-icons">notes</span>
+                Notas Adicionales
+              </label>
+              <textarea id="notas" class="form-control" rows="3" placeholder="Indicaciones especiales, tomar con alimentos, etc."></textarea>
+            </div>
+
+            <!-- Imagen de la receta -->
+            <div class="form-group">
+              <div class="attached-image">
+                <span class="material-icons">attach_file</span>
+                <span>Imagen de receta adjunta</span>
+              </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="form-actions">
+              <button type="button" id="saveBtn" class="btn-primary btn-large">
+                <span class="material-icons">save</span>
+                Guardar Prescripción
+              </button>
+              <button type="button" id="cancelBtn" class="btn-secondary">
+                <span class="material-icons">close</span>
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </main>
+
+  <script src="cordova.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/sync.js"></script>
+  <!-- Tesseract.js para OCR -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+  <script src="js/scan.js"></script>
+  <script src="js/dark-mode.js"></script>
+  <script src="js/animations.js"></script>
+  <script src="js/bottom-nav.js"></script>
+    <script src="js/menu-bottom.js"></script>
+</body>
+</html>

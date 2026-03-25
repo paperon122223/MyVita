@@ -1,0 +1,551 @@
+/* ========================================
+   MODO OSCURO COMPLETO - MYVITA
+   Este archivo soluciona TODOS los problemas visuales
+======================================== */
+
+/* ========================================
+   FONDO Y COLORES BASE
+======================================== */
+body.dark-mode {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+  color: #f1f5f9 !important;
+}
+
+/* ========================================
+   HEADERS Y TÍTULOS
+======================================== */
+body.dark-mode .app-header {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+/* Título de la app con gradiente visible */
+body.dark-mode .titulo-app,
+body.dark-mode .contacts-title,
+body.dark-mode .header-title {
+  background: linear-gradient(90deg, #60a5fa, #34d399) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+body.dark-mode .subtitle {
+  color: #cbd5e1 !important;
+}
+
+/* ========================================
+   TARJETAS Y CONTENEDORES
+======================================== */
+body.dark-mode .login-card,
+body.dark-mode .preinsc-card,
+body.dark-mode .alarm-form,
+body.dark-mode .prescripciones-container,
+body.dark-mode .settings-item,
+body.dark-mode .contact-item,
+body.dark-mode .prescripcion-item,
+body.dark-mode .alarm-item,
+body.dark-mode .info-box,
+body.dark-mode .card,
+body.dark-mode .card-body {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+/* ========================================
+   TEXTOS EN CONTENEDORES
+======================================== */
+body.dark-mode .item-text,
+body.dark-mode .item-subtext,
+body.dark-mode .contact-name,
+body.dark-mode .contact-phone,
+body.dark-mode .alarm-name,
+body.dark-mode .alarm-time,
+body.dark-mode .prescripcion-title,
+body.dark-mode .prescripcion-time,
+body.dark-mode .prescripcion-detail,
+body.dark-mode .location-label,
+body.dark-mode .location-value,
+body.dark-mode .location-title,
+body.dark-mode h3,
+body.dark-mode h4,
+body.dark-mode p,
+body.dark-mode span,
+body.dark-mode label {
+  color: #cbd5e1 !important;
+}
+
+/* Textos con colores específicos */
+body.dark-mode .form-label,
+body.dark-mode .prescripcion-title,
+body.dark-mode .contact-name,
+body.dark-mode .alarm-name,
+body.dark-mode .location-title {
+  color: #60a5fa !important;
+}
+
+body.dark-mode .prescripcion-time,
+body.dark-mode .alarm-time {
+  color: #34d399 !important;
+  background: #064e3b !important;
+}
+
+body.dark-mode .prescripcion-detail strong,
+body.dark-mode .location-label {
+  color: #60a5fa !important;
+}
+
+/* ========================================
+   INPUTS Y FORMULARIOS
+======================================== */
+body.dark-mode .form-control,
+body.dark-mode .form-select,
+body.dark-mode textarea.form-control,
+body.dark-mode .input-icon input,
+body.dark-mode input[type="text"],
+body.dark-mode input[type="password"],
+body.dark-mode input[type="email"],
+body.dark-mode input[type="time"],
+body.dark-mode input[type="date"],
+body.dark-mode textarea,
+body.dark-mode select,
+body.dark-mode .font-selector,
+body.dark-mode .search-input {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus,
+body.dark-mode textarea.form-control:focus,
+body.dark-mode .input-icon input:focus,
+body.dark-mode .search-input:focus {
+  border-color: #60a5fa !important;
+  background: #1e293b !important;
+  box-shadow: 0 0 0 0.25rem rgba(96, 165, 250, 0.25) !important;
+}
+
+/* Placeholders */
+body.dark-mode ::placeholder {
+  color: #64748b !important;
+  opacity: 0.7;
+}
+
+/* ========================================
+   ICONOS DE MATERIAL ICONS
+======================================== */
+body.dark-mode .material-icons {
+  color: #94a3b8 !important;
+}
+
+body.dark-mode .item-left .material-icons,
+body.dark-mode .search-icon {
+  background: linear-gradient(135deg, #334155, #475569) !important;
+  color: #94a3b8 !important;
+}
+
+/* Iconos de navegación */
+body.dark-mode .nav-item .material-icons {
+  color: inherit !important;
+  background: none !important;
+}
+
+/* ========================================
+   NAVEGACIÓN INFERIOR
+======================================== */
+body.dark-mode .bottom-nav {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+body.dark-mode .nav-item {
+  color: #cbd5e1 !important;
+}
+
+body.dark-mode .nav-item.active {
+  color: #60a5fa !important;
+  font-weight: 600;
+}
+
+/* ========================================
+   BOTONES
+======================================== */
+body.dark-mode .btn-outline-primary,
+body.dark-mode .btn-outline-secondary,
+body.dark-mode .btn-cancelar {
+  border-color: #60a5fa !important;
+  color: #60a5fa !important;
+  background: #1e293b !important;
+}
+
+body.dark-mode .btn-outline-primary:hover,
+body.dark-mode .btn-cancelar:hover {
+  background: #60a5fa !important;
+  color: #0f172a !important;
+}
+
+/* Botones de gradiente - mantener visibles */
+body.dark-mode .btn-gradient,
+body.dark-mode .login-button,
+body.dark-mode .btn-save,
+body.dark-mode .btn-add,
+body.dark-mode .btn-message,
+body.dark-mode .back-button,
+body.dark-mode .btn-suggest,
+body.dark-mode .btn-about,
+body.dark-mode .btn-bluetooth-connect,
+body.dark-mode .btn-bluetooth-disconnect,
+body.dark-mode .btn-logout {
+  /* Mantener sus gradientes originales */
+  opacity: 1 !important;
+}
+
+/* ========================================
+   ESTADOS VACÍOS
+======================================== */
+body.dark-mode .empty-state,
+body.dark-mode .empty-prescriptions,
+body.dark-mode .empty-alarms,
+body.dark-mode .no-contacts-message {
+  color: #64748b !important;
+}
+
+body.dark-mode .empty-state h3,
+body.dark-mode .empty-state h4,
+body.dark-mode .empty-prescriptions h4,
+body.dark-mode .empty-alarms h3 {
+  color: #60a5fa !important;
+}
+
+body.dark-mode .empty-state .material-icons,
+body.dark-mode .empty-prescriptions .material-icons,
+body.dark-mode .empty-alarms .material-icons {
+  color: #334155 !important;
+  background: none !important;
+}
+
+/* ========================================
+   PRESCRIPCIONES
+======================================== */
+body.dark-mode .prescripcion-item {
+  background: #0f172a !important;
+  border-left-color: #60a5fa !important;
+  border-color: #334155 !important;
+}
+
+body.dark-mode .prescripcion-item:hover {
+  background: #1e293b !important;
+}
+
+/* ========================================
+   ALARMAS
+======================================== */
+body.dark-mode .alarm-item {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+body.dark-mode .alarm-item:hover {
+  background: #1e293b !important;
+}
+
+/* ========================================
+   CONTACTOS
+======================================== */
+body.dark-mode .contact-item {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+body.dark-mode .contact-item:hover {
+  background: #0f172a !important;
+}
+
+body.dark-mode .contact-item.selected {
+  border-color: #34d399 !important;
+  background: #064e3b !important;
+}
+
+body.dark-mode .contact-avatar {
+  background: linear-gradient(135deg, #60a5fa, #34d399) !important;
+  color: #0f172a !important;
+}
+
+body.dark-mode .contact-phone {
+  color: #94a3b8 !important;
+}
+
+/* ========================================
+   MAPA
+======================================== */
+body.dark-mode #map {
+  border-color: #334155 !important;
+  filter: invert(1) hue-rotate(180deg);
+}
+
+body.dark-mode .status-searching {
+  background: linear-gradient(135deg, #1e3a5f, #1e293b) !important;
+  color: #60a5fa !important;
+  border-color: #334155 !important;
+}
+
+body.dark-mode .status-success {
+  background: linear-gradient(135deg, #064e3b, #0f172a) !important;
+  color: #34d399 !important;
+  border-color: #064e3b !important;
+}
+
+body.dark-mode .status-error {
+  background: linear-gradient(135deg, #450a0a, #0f172a) !important;
+  color: #f87171 !important;
+  border-color: #7f1d1d !important;
+}
+
+/* ========================================
+   SWITCH TOGGLE
+======================================== */
+body.dark-mode .slider {
+  background-color: #475569 !important;
+}
+
+body.dark-mode input:checked + .slider {
+  background: linear-gradient(135deg, #34d399, #60a5fa) !important;
+}
+
+body.dark-mode .slider:before {
+  background-color: #f1f5f9 !important;
+}
+
+/* ========================================
+   CHECKBOXES
+======================================== */
+body.dark-mode input[type="checkbox"] {
+  accent-color: #34d399 !important;
+}
+
+/* ========================================
+   VOICE ASSISTANT
+======================================== */
+body.dark-mode .voice-status.listening {
+  background: linear-gradient(135deg, #1e3a5f, #1e293b) !important;
+  color: #60a5fa !important;
+  border-color: #334155 !important;
+}
+
+body.dark-mode .voice-status.processing {
+  background: linear-gradient(135deg, #78350f, #0f172a) !important;
+  color: #fbbf24 !important;
+  border-color: #78350f !important;
+}
+
+body.dark-mode .voice-status.success {
+  background: linear-gradient(135deg, #064e3b, #0f172a) !important;
+  color: #34d399 !important;
+  border-color: #064e3b !important;
+}
+
+body.dark-mode .voice-status.error {
+  background: linear-gradient(135deg, #450a0a, #0f172a) !important;
+  color: #f87171 !important;
+  border-color: #7f1d1d !important;
+}
+
+/* ========================================
+   MODAL
+======================================== */
+body.dark-mode .modal-overlay {
+  background: rgba(15, 23, 42, 0.9) !important;
+}
+
+body.dark-mode .modal-box {
+  background: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+
+body.dark-mode #modalTitle {
+  color: #60a5fa !important;
+}
+
+body.dark-mode #modalMessage {
+  color: #cbd5e1 !important;
+}
+
+/* ========================================
+   NOTIFICACIONES
+======================================== */
+body.dark-mode .notificacion {
+  /* Mantener colores originales para distinguir tipos */
+  opacity: 0.95;
+}
+
+/* ========================================
+   BORDES Y SOMBRAS
+======================================== */
+body.dark-mode .prescripcion-item,
+body.dark-mode .alarm-item,
+body.dark-mode .contact-item,
+body.dark-mode .settings-item {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+body.dark-mode .prescripcion-item:hover,
+body.dark-mode .alarm-item:hover,
+body.dark-mode .contact-item:hover,
+body.dark-mode .settings-item:hover {
+  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.2) !important;
+}
+
+/* ========================================
+   LOGIN ESPECÍFICO
+======================================== */
+body.dark-mode .login-card::before {
+  background: linear-gradient(90deg, #34d399, #60a5fa) !important;
+}
+
+body.dark-mode .forgot-password,
+body.dark-mode .login-footer a {
+  color: #60a5fa !important;
+}
+
+body.dark-mode .forgot-password:hover,
+body.dark-mode .login-footer a:hover {
+  color: #34d399 !important;
+}
+
+/* ========================================
+   AJUSTES ESPECÍFICOS
+======================================== */
+body.dark-mode #userName {
+  color: #f1f5f9 !important;
+  font-weight: 700;
+}
+
+body.dark-mode #lastLogin {
+  color: #94a3b8 !important;
+}
+
+/* ========================================
+   AUDIO ELEMENT
+======================================== */
+body.dark-mode audio {
+  filter: invert(1);
+}
+
+/* ========================================
+   SCROLLBAR (OPCIONAL)
+======================================== */
+body.dark-mode ::-webkit-scrollbar {
+  width: 8px;
+  background: #1e293b;
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: #60a5fa;
+}
+
+/* ========================================
+   FIXES PARA BOOTSTRAP
+======================================== */
+body.dark-mode .list-unstyled,
+body.dark-mode .list-group,
+body.dark-mode .list-group-item {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* ========================================
+   TEXTO EN PELIGRO (ROJO)
+======================================== */
+body.dark-mode .text-danger {
+  color: #f87171 !important;
+}
+
+/* ========================================
+   DIVIDERS Y SEPARADORES
+======================================== */
+body.dark-mode .location-item,
+body.dark-mode hr {
+  border-color: #334155 !important;
+}
+
+/* ========================================
+   FIXES ESPECÍFICOS POR SECCIÓN
+======================================== */
+
+/* Horario personalizado en prescripciones */
+body.dark-mode #horario_personalizado {
+  background: #0f172a !important;
+  color: #f1f5f9 !important;
+}
+
+/* Botón eliminar prescripción */
+body.dark-mode .btn-eliminar-prescripcion {
+  background: #dc2626 !important;
+  color: white !important;
+}
+
+body.dark-mode .btn-eliminar-prescripcion:hover {
+  background: #991b1b !important;
+}
+
+/* Action buttons en alarmas */
+body.dark-mode .action-btn {
+  color: white !important;
+}
+
+/* Contact phone option */
+body.dark-mode .contact-phone-option label {
+  color: #cbd5e1 !important;
+}
+
+/* ========================================
+   IMPORTANTE: FORZAR VISIBILIDAD
+======================================== */
+body.dark-mode * {
+  /* Asegurar que nada tenga color blanco sobre blanco */
+}
+
+body.dark-mode div,
+body.dark-mode span,
+body.dark-mode p,
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4,
+body.dark-mode h5,
+body.dark-mode h6,
+body.dark-mode label,
+body.dark-mode a,
+body.dark-mode li {
+  /* Asegurar contraste mínimo */
+}
+
+/* ========================================
+   OVERRIDE PARA CUALQUIER FONDO BLANCO
+======================================== */
+body.dark-mode [style*="background: white"],
+body.dark-mode [style*="background: #fff"],
+body.dark-mode [style*="background: #ffffff"],
+body.dark-mode [style*="background-color: white"],
+body.dark-mode [style*="background-color: #fff"],
+body.dark-mode [style*="background-color: #ffffff"] {
+  background: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+
+/* ========================================
+   OVERRIDE PARA CUALQUIER TEXTO NEGRO
+======================================== */
+body.dark-mode [style*="color: black"],
+body.dark-mode [style*="color: #000"],
+body.dark-mode [style*="color: #000000"],
+body.dark-mode [style*="color: #222"] {
+  color: #f1f5f9 !important;
+}

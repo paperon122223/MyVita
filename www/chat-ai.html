@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="css/main.css">
+  <title>Asistente IA - MyVita</title>
+  
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/chat-ai.css">
+  <link rel="stylesheet" href="css/ui-enhancements.css">
+  <link rel="stylesheet" href="css/dark-mode.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/menu-bottom.css">
+  <link rel="stylesheet" href="css/sos-system.css">
+</head>
+<body>
+  <div class="app-container">
+
+    <header class="chat-header">
+      <button class="back-btn" onclick="window.location.href='home.html'">
+        <span class="material-icons">arrow_back</span>
+      </button>
+      <div class="header-info">
+        <div class="ai-avatar">
+          <span class="material-icons">psychology</span>
+        </div>
+        <div class="header-text">
+          <h1>Asistente Médico IA</h1>
+          <p class="status-text" id="statusText">
+            <span class="status-dot"></span>En línea
+          </p>
+        </div>
+      </div>
+
+      <!-- ⬇ BOTÓN SOS + MENÚ juntos en el header -->
+      <div class="header-actions">
+        <button class="sos-header-btn" id="btnSOSHeader" title="Enviar alerta de emergencia">
+          🆘
+        </button>
+        <button class="menu-btn" id="btnChatOptions">
+          <span class="material-icons">more_vert</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="chat-container" id="chatContainer">
+      <div class="welcome-message animate-fade-in-up">
+        <div class="welcome-icon">
+          <span class="material-icons">waving_hand</span>
+        </div>
+        <h2>¡Hola! Soy tu asistente médico</h2>
+        <p>Puedo ayudarte con:</p>
+        <div class="suggestion-chips">
+          <button class="chip" data-prompt="¿Puedo tomar paracetamol con ibuprofeno?">
+            <span class="material-icons">medication</span>Interacciones
+          </button>
+          <button class="chip" data-prompt="¿Cuáles son mis prescripciones activas?">
+            <span class="material-icons">list</span>Mis medicamentos
+          </button>
+          <button class="chip" data-prompt="¿Tomé mi medicamento hoy?">
+            <span class="material-icons">check_circle</span>Estado de tomas
+          </button>
+          <button class="chip" data-prompt="¿Qué efectos secundarios puede tener la amoxicilina?">
+            <span class="material-icons">info</span>Efectos secundarios
+          </button>
+          <button class="chip" data-prompt="Analiza mis interacciones de medicamentos">
+            <span class="material-icons">psychology</span>Análisis IA
+          </button>
+          <button class="chip" data-prompt="Recomiéndame horarios óptimos para mis medicamentos">
+            <span class="material-icons">schedule</span>Horarios IA
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <footer class="chat-input-container">
+      <div class="input-wrapper">
+        <button class="attach-btn" id="btnAttach"><span class="material-icons">attach_file</span></button>
+        <textarea id="messageInput" class="message-input" placeholder="Escribe tu pregunta..." rows="1"></textarea>
+        <button class="voice-btn" id="btnVoice"><span class="material-icons">mic</span></button>
+        <button class="send-btn" id="btnSend"><span class="material-icons">send</span></button>
+      </div>
+      <div class="typing-indicator" id="typingIndicator" style="display:none;">
+        <span class="material-icons">psychology</span>
+        <span class="typing-text">El asistente está escribiendo</span>
+        <div class="typing-dots"><span></span><span></span><span></span></div>
+      </div>
+    </footer>
+
+    <div class="chat-options-modal" id="chatOptionsModal" style="display:none;">
+      <div class="options-content">
+        <button class="option-item" id="btnClearChat">
+          <span class="material-icons">delete_sweep</span><span>Limpiar conversación</span>
+        </button>
+        <button class="option-item" id="btnExportChat">
+          <span class="material-icons">download</span><span>Exportar chat</span>
+        </button>
+        <button class="option-item" id="btnContextInfo">
+          <span class="material-icons">info</span><span>Ver contexto médico</span>
+        </button>
+        <button class="option-item" id="btnAISettings">
+          <span class="material-icons">tune</span><span>Configuración IA</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="context-modal" id="contextModal" style="display:none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3><span class="material-icons">medical_information</span>Contexto Médico</h3>
+          <button class="modal-close" id="btnCloseContext"><span class="material-icons">close</span></button>
+        </div>
+        <div class="modal-body">
+          <div class="context-section">
+            <h4>Prescripciones Activas</h4>
+            <div id="activePrescriptions" class="context-list"></div>
+          </div>
+          <div class="context-section">
+            <h4>Último Registro</h4>
+            <div id="lastEntries" class="context-list"></div>
+          </div>
+          <div class="context-section">
+            <h4>Alergias Registradas</h4>
+            <div id="allergies" class="context-list">
+              <p class="context-empty">No hay alergias registradas</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="cordova.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/interactions.js"></script>
+  <script src="js/ai-medication-assistant.js"></script>
+  <script src="js/voice-commands.js"></script>
+  <script src="js/chat-ai.js"></script>
+  <script src="js/dark-mode.js"></script>
+  <script src="js/animations.js"></script>
+  <script src="js/menu-bottom.js"></script>
+  <script src="js/sos-system.js"></script>
+</body>
+</html>

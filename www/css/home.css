@@ -1,0 +1,726 @@
+/* ========================================
+   RESET Y BASE STYLES
+======================================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Poppins', 'Segoe UI', Arial, sans-serif;
+  background: linear-gradient(180deg, #e8f0ff 0%, #f4f7f9 90%);
+  min-height: 100vh;
+  overflow-x: hidden;
+  color: #222;
+  padding-bottom: 70px;
+}
+
+/* ========================================
+   CONTENEDOR PRINCIPAL
+======================================== */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* ========================================
+   HEADER
+======================================== */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: white;
+  padding: 20px 16px 16px;
+  margin-bottom: 16px;
+  border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
+  box-shadow: 0 6px 20px rgba(2, 136, 209, 0.15);
+}
+
+.titulo-app {
+  font-weight: 800;
+  color: #0288d1;
+  text-align: center;
+  font-size: 1.8rem;
+  background: linear-gradient(90deg, #0288d1, #00c853);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+}
+
+/* ========================================
+   CONTENIDO PRINCIPAL
+======================================== */
+.app-content {
+  flex: 1;
+  padding: 0 16px 90px;
+  overflow-y: auto;
+}
+
+/* ========================================
+   MODAL DEL FORMULARIO
+======================================== */
+#formularioPrescripcion {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  overflow-y: auto;
+  padding: 20px;
+  padding-top: 60px;
+  padding-bottom: 60px;
+}
+
+#formularioPrescripcion.visible {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.modal-overlay {
+  /* No agregar estilos aquí, está en #formularioPrescripcion */
+}
+
+.preinsc-card {
+  background: #fff;
+  border-radius: 30px;
+  box-shadow: 0 6px 32px rgba(40, 82, 127, 0.08), 0 1.5px 16px rgba(40, 82, 127, 0.10);
+  padding: 32px 26px 20px 26px;
+  max-width: 420px;
+  width: 100%;
+  border: 1px solid #e0f7fa;
+  transition: all 0.2s ease;
+  animation: slideUp 0.3s ease;
+  max-height: 90vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.preinsc-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(2, 136, 209, 0.15);
+}
+
+.preinsc-card h3 {
+  margin-bottom: 20px;
+  color: #0288d1;
+  font-weight: 700;
+  font-size: 1.3rem;
+  margin-top: 0;
+}
+
+/* ========================================
+   FORMULARIO
+======================================== */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.form-label {
+  font-size: 1.08rem;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #2573d6;
+  letter-spacing: 0.01em;
+}
+
+.form-control,
+.form-select,
+textarea.form-control {
+  width: 100%;
+  background: #f5f8fa;
+  border: 2.2px solid #dde6f2;
+  border-radius: 16px;
+  font-size: 1.07rem;
+  padding: 13px 14px;
+  transition: border-color 0.18s;
+  font-family: inherit;
+  outline: none;
+  color: #222;
+  font-weight: 500;
+}
+
+.form-control:focus,
+.form-select:focus,
+textarea.form-control:focus {
+  border-color: #2573d6;
+  background: #eef6fe;
+  box-shadow: 0 0 0 0.25rem rgba(37, 115, 214, 0.15);
+}
+
+textarea.form-control {
+  min-height: 80px;
+  resize: vertical;
+}
+
+#horario_personalizado {
+  display: none;
+}
+
+/* ========================================
+   BOTONES
+======================================== */
+.btn-gradient {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  background: linear-gradient(90deg, #1772fe 10%, #66a3ff 90%);
+  color: #fff;
+  border: none;
+  border-radius: 18px;
+  padding: 15px 0;
+  margin-top: 16px;
+  margin-bottom: 5px;
+  box-shadow: 0 3px 18px rgba(23, 114, 254, 0.1);
+  transition: all 0.18s;
+  cursor: pointer;
+  width: 100%;
+}
+
+.btn-gradient:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(2, 136, 209, 0.35);
+}
+
+.btn-gradient:active {
+  background: linear-gradient(90deg, #1252b5 10%, #4f8edb 90%);
+  transform: translateY(0);
+}
+
+.btn-gradient .material-icons {
+  font-size: 1.4rem;
+}
+
+.btn-cancelar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  border: 2px solid #ccc;
+  border-radius: 16px;
+  background: white;
+  color: #666;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-top: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancelar:hover {
+  border-color: #999;
+  color: #333;
+}
+
+/* ========================================
+   CONTENEDOR DE PRESCRIPCIONES
+======================================== */
+.prescripciones-container {
+  background: white;
+  border-radius: 18px;
+  padding: 24px;
+  margin-top: 16px;
+  box-shadow: 0 4px 16px rgba(2, 136, 209, 0.1);
+  border: 1px solid #e0f7fa;
+  transition: all 0.2s ease;
+}
+
+.prescripciones-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(2, 136, 209, 0.15);
+}
+
+.prescripciones-container h3 {
+  font-weight: 700;
+  color: #0288d1;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+/* Empty state */
+.empty-prescriptions {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+  display: none;
+}
+
+.empty-prescriptions.show {
+  display: block;
+}
+
+.empty-prescriptions .material-icons {
+  font-size: 4rem;
+  color: #b0bec5;
+  margin-bottom: 16px;
+}
+
+.empty-prescriptions h4 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #555;
+  margin: 16px 0 8px;
+}
+
+.empty-prescriptions p {
+  font-size: 0.95rem;
+  color: #888;
+  margin: 0;
+}
+
+/* ========================================
+   LISTA DE PRESCRIPCIONES
+======================================== */
+.prescripciones-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.prescripcion-item {
+  background: #f8fdff;
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 16px;
+  border-left: 4px solid #0288d1;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.prescripcion-item:last-child {
+  margin-bottom: 0;
+}
+
+.prescripcion-item:hover {
+  background: #eef9ff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(2, 136, 209, 0.12);
+}
+
+.prescripcion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-right: 44px;
+}
+
+.prescripcion-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0288d1;
+}
+
+.prescripcion-time {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #00c853;
+  background: #e8f5e9;
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.prescripcion-detail {
+  font-size: 0.95rem;
+  color: #555;
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+.prescripcion-detail:last-child {
+  margin-bottom: 0;
+}
+
+.prescripcion-detail strong {
+  color: #0288d1;
+  font-weight: 600;
+}
+
+/* Botón eliminar */
+.btn-eliminar-prescripcion {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #ff5252;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(255, 82, 82, 0.3);
+}
+
+.btn-eliminar-prescripcion:hover {
+  background: #ff1744;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(255, 82, 82, 0.4);
+}
+
+.btn-eliminar-prescripcion .material-icons {
+  font-size: 18px;
+}
+
+/* ========================================
+   NAVEGACIÓN INFERIOR ANTIGUA - OCULTA
+   (reemplazada por .bottom-menu en bottom-menu.js)
+======================================== */
+.bottom-nav {
+  display: none !important;
+}
+
+/* ========================================
+   NOTIFICACIONES
+======================================== */
+#notificaciones-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.notificacion {
+  pointer-events: auto;
+  max-width: 320px;
+  padding: 16px 20px;
+  border-radius: 14px;
+  color: white;
+  font-weight: 500;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  transform: translateX(400px);
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.notificacion.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.notificacion.exito {
+  background: #00c853;
+}
+
+.notificacion.error {
+  background: #ff5252;
+}
+
+.notificacion.advertencia {
+  background: #ffab00;
+}
+
+.notificacion.info {
+  background: #29b6f6;
+}
+
+.notificacion .material-icons {
+  font-size: 1.4rem;
+  min-width: 24px;
+  text-align: center;
+}
+
+.notificacion button {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.3rem;
+  cursor: pointer;
+  opacity: 0.8;
+  padding: 4px;
+  border-radius: 50%;
+  transition: opacity 0.2s;
+}
+
+.notificacion button:hover {
+  opacity: 1;
+}
+
+/* ========================================
+   SWITCH MODO OSCURO
+======================================== */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 22px;
+  margin: 0;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.3s;
+  border-radius: 22px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #0d6efd;
+}
+
+input:checked + .slider:before {
+  transform: translateX(24px);
+}
+
+/* ========================================
+   MODO OSCURO
+======================================== */
+body.dark-mode {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #f1f5f9;
+}
+
+body.dark-mode .app-header,
+body.dark-mode .prescripciones-container {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+body.dark-mode #formularioPrescripcion {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+body.dark-mode .preinsc-card {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+body.dark-mode .titulo-app {
+  background: linear-gradient(90deg, #60a5fa, #34d399);
+  -webkit-text-fill-color: transparent;
+}
+
+body.dark-mode .preinsc-card h3 {
+  color: #60a5fa;
+}
+
+body.dark-mode .form-label {
+  color: #60a5fa;
+}
+
+body.dark-mode .form-control,
+body.dark-mode .form-select,
+body.dark-mode textarea.form-control {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus,
+body.dark-mode textarea.form-control:focus {
+  border-color: #60a5fa;
+  background: #1e293b;
+}
+
+body.dark-mode .prescripcion-item {
+  background: #0f172a;
+  border-left-color: #60a5fa;
+}
+
+body.dark-mode .prescripcion-item:hover {
+  background: #1e293b;
+}
+
+body.dark-mode .prescripcion-title {
+  color: #60a5fa;
+}
+
+body.dark-mode .prescripcion-time {
+  color: #34d399;
+  background: #064e3b;
+}
+
+body.dark-mode .prescripcion-detail {
+  color: #cbd5e1;
+}
+
+body.dark-mode .prescripcion-detail strong {
+  color: #60a5fa;
+}
+
+body.dark-mode .nav-item {
+  color: #cbd5e1;
+}
+
+body.dark-mode .nav-item.active {
+  color: #fff;
+}
+
+body.dark-mode .btn-cancelar {
+  border-color: #475569;
+  background: #1e293b;
+  color: #cbd5e1;
+}
+
+body.dark-mode .slider {
+  background-color: #555;
+}
+
+body.dark-mode input:checked + .slider {
+  background-color: #0d6efd;
+}
+
+/* Modo oscuro para el nuevo menú */
+body.dark-mode .bottom-menu {
+  background: #1e293b;
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+body.dark-mode .bottom-menu-item {
+  color: #94a3b8;
+}
+
+body.dark-mode .bottom-menu-item.active {
+  color: #60a5fa;
+}
+
+/* ========================================
+   RESPONSIVE
+======================================== */
+@media (max-width: 540px) {
+  .titulo-app {
+    font-size: 1.5rem;
+  }
+
+  .preinsc-card {
+    padding: 18px 16px 12px 16px;
+    max-width: 100%;
+  }
+
+  .app-content {
+    padding: 16px;
+  }
+
+  .btn-gradient {
+    padding: 12px;
+    font-size: 1rem;
+  }
+
+  .form-label {
+    font-size: 0.9rem;
+  }
+
+  .prescripcion-title {
+    font-size: 1.1rem;
+  }
+
+  .prescripcion-detail {
+    font-size: 0.9rem;
+  }
+
+  .prescripcion-header {
+    padding-right: 36px;
+  }
+
+  .btn-eliminar-prescripcion {
+    top: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+  }
+
+  .btn-eliminar-prescripcion .material-icons {
+    font-size: 16px;
+  }
+
+  #formularioPrescripcion {
+    padding: 10px;
+    padding-top: 40px;
+    padding-bottom: 40px;
+  }
+
+  .preinsc-card {
+    max-height: 85vh;
+  }
+}
+
+@media (max-width: 360px) {
+  .titulo-app {
+    font-size: 1.3rem;
+  }
+
+  .prescripcion-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .prescripcion-time {
+    align-self: flex-end;
+  }
+
+  .preinsc-card {
+    padding: 16px 12px 12px 12px;
+    max-height: 80vh;
+  }
+}
+
+/* ===== BOTÓN MENÚ FIJO - OCULTO ===== */
+.menu-shortcut {
+  display: none !important;
+}

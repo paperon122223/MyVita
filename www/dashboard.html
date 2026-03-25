@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="css/main.css">
+  <title>MyVita</title>
+  
+  <!-- Bootstrap CSS -->
+  
+  <!-- Google Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- CSS propios -->
+  <link rel="stylesheet" href="css/home.css">
+  <link rel="stylesheet" href="css/ui-enhancements.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/dark-mode.css">
+  <link rel="stylesheet" href="css/animations.css">
+<link rel="stylesheet" href="css/menu-bottom.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <h1 class="titulo-app">Dashboard</h1>
+    </header>
+
+    <!-- Contenido -->
+    <main class="app-content">
+      
+      <!-- Saludo personalizado -->
+      <div class="welcome-card animate-fade-in-down">
+        <div class="welcome-icon">
+          <span class="material-icons">waving_hand</span>
+        </div>
+        <div class="welcome-text">
+          <h2 id="greetingText">¡Hola!</h2>
+          <p id="greetingSubtext">Así va tu día</p>
+        </div>
+        <div class="welcome-avatar">
+          <span class="material-icons">account_circle</span>
+        </div>
+      </div>
+
+      <!-- Insights de IA -->
+      <div id="aiInsightsContainer" class="ai-insights-container" style="display: none;">
+        <!-- Se llena dinámicamente con JavaScript -->
+      </div>
+
+      <!-- Estadísticas rápidas -->
+      <div class="stats-grid">
+        <!-- Adherencia de hoy -->
+        <div class="stat-card animate-fade-in-up delay-100">
+          <div class="stat-icon adherence">
+            <span class="material-icons">check_circle</span>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Adherencia Hoy</p>
+            <h3 class="stat-value" id="todayAdherence">0%</h3>
+          </div>
+        </div>
+
+        <!-- Medicamentos activos -->
+        <div class="stat-card animate-fade-in-up delay-150">
+          <div class="stat-icon active">
+            <span class="material-icons">medication</span>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Activos</p>
+            <h3 class="stat-value" id="activeMeds">0</h3>
+          </div>
+        </div>
+
+        <!-- Próximas alarmas -->
+        <div class="stat-card animate-fade-in-up delay-200">
+          <div class="stat-icon pending">
+            <span class="material-icons">schedule</span>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Pendientes</p>
+            <h3 class="stat-value" id="pendingAlarms">0</h3>
+          </div>
+        </div>
+
+        <!-- Racha actual -->
+        <div class="stat-card animate-fade-in-up delay-250">
+          <div class="stat-icon streak">
+            <span class="material-icons">local_fire_department</span>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Racha</p>
+            <h3 class="stat-value" id="currentStreak">0 días</h3>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráfica de adherencia semanal -->
+      <div class="chart-card animate-fade-in-up delay-300">
+        <div class="chart-header">
+          <h3>
+            <span class="material-icons">show_chart</span>
+            Adherencia Semanal
+          </h3>
+          <div class="chart-legend">
+            <span class="legend-item">
+              <span class="legend-dot completed"></span>
+              Tomados
+            </span>
+            <span class="legend-item">
+              <span class="legend-dot missed"></span>
+              Perdidos
+            </span>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="weeklyChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Próximas alarmas del día -->
+      <div class="section-card animate-fade-in-up delay-350">
+        <div class="section-header">
+          <h3>
+            <span class="material-icons">alarm</span>
+            Próximas Alarmas
+          </h3>
+          <a href="alarm.html" class="see-all-link">
+            Ver todas
+            <span class="material-icons">arrow_forward</span>
+          </a>
+        </div>
+        <div id="upcomingAlarms" class="alarms-list">
+          <!-- Se llenan dinámicamente -->
+          <div class="empty-state">
+            <span class="material-icons">done_all</span>
+            <p>¡Todo al día!</p>
+            <small>No tienes alarmas pendientes</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Medicamentos que se acaban pronto -->
+      <div class="section-card animate-fade-in-up delay-400">
+        <div class="section-header">
+          <h3>
+            <span class="material-icons">inventory_2</span>
+            Stock Bajo
+          </h3>
+          <a href="home.html" class="see-all-link">
+            Ver todos
+            <span class="material-icons">arrow_forward</span>
+          </a>
+        </div>
+        <div id="lowStockMeds" class="stock-list">
+          <!-- Se llenan dinámicamente -->
+          <div class="empty-state">
+            <span class="material-icons">check_circle</span>
+            <p>Stock suficiente</p>
+            <small>Todos tus medicamentos tienen suficientes dosis</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumen mensual -->
+      <div class="summary-card animate-fade-in-up delay-450">
+        <div class="summary-header">
+          <h3>
+            <span class="material-icons">calendar_month</span>
+            Resumen del Mes
+          </h3>
+          <select id="monthSelector" class="month-selector">
+            <option value="0">Enero</option>
+            <option value="1">Febrero</option>
+            <option value="2">Marzo</option>
+            <option value="3">Abril</option>
+            <option value="4">Mayo</option>
+            <option value="5">Junio</option>
+            <option value="6">Julio</option>
+            <option value="7">Agosto</option>
+            <option value="8">Septiembre</option>
+            <option value="9">Octubre</option>
+            <option value="10">Noviembre</option>
+            <option value="11">Diciembre</option>
+          </select>
+        </div>
+        
+        <div class="summary-stats">
+          <div class="summary-item">
+            <span class="material-icons">check_circle</span>
+            <div>
+              <p class="summary-value" id="monthCompleted">0</p>
+              <p class="summary-label">Tomas completadas</p>
+            </div>
+          </div>
+          
+          <div class="summary-item">
+            <span class="material-icons">cancel</span>
+            <div>
+              <p class="summary-value" id="monthMissed">0</p>
+              <p class="summary-label">Tomas perdidas</p>
+            </div>
+          </div>
+          
+          <div class="summary-item">
+            <span class="material-icons">percent</span>
+            <div>
+              <p class="summary-value" id="monthAdherence">0%</p>
+              <p class="summary-label">Adherencia</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barra de progreso -->
+        <div class="progress-bar-container">
+          <div class="progress-bar">
+            <div class="progress-fill" id="monthProgress"></div>
+          </div>
+          <p class="progress-text">
+            <span id="monthProgressText">0% completado</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Botones de acción rápida -->
+      <div class="quick-actions animate-fade-in-up delay-500">
+        <button class="quick-action-btn" onclick="window.location.href='home.html'">
+          <span class="material-icons">add_circle</span>
+          <span>Agregar Prescripción</span>
+        </button>
+        
+        <button class="quick-action-btn" onclick="window.location.href='scan.html'">
+          <span class="material-icons">camera_alt</span>
+          <span>Escanear Receta</span>
+        </button>
+        
+        <button class="quick-action-btn" onclick="window.location.href='Diary.html'">
+          <span class="material-icons">edit_note</span>
+          <span>Registrar en Diario</span>
+        </button>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  
+  <script src="cordova.js"></script>
+  <!-- utils.js, db.js y sync.js PRIMERO — dashboard.js los necesita -->
+  <script src="js/utils.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/sync.js"></script>
+  <!-- Chart.js para gráficas -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="js/ai-analyzer.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/dark-mode.js"></script>
+  <script src="js/animations.js"></script>
+  <script src="js/menu-bottom.js"></script>
+
+</body>
+</html>

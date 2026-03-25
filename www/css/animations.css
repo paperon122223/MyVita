@@ -1,0 +1,662 @@
+/* ========================================
+   SISTEMA DE ANIMACIONES RÁPIDAS - MYVITA
+   Versión optimizada para sensación de velocidad
+======================================== */
+
+/* ========================================
+   ANIMACIONES DE ENTRADA (MÁS RÁPIDAS)
+======================================== */
+
+/* Fade In desde arriba - RÁPIDO */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fade In desde abajo - RÁPIDO */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fade In desde izquierda - RÁPIDO */
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Fade In desde derecha - RÁPIDO */
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Zoom In - RÁPIDO */
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Bounce In - MÁS RÁPIDO */
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ========================================
+   ANIMACIONES DE SALIDA - INSTANTÁNEAS
+======================================== */
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes fadeOutUp {
+  to {
+    opacity: 0;
+    transform: translateY(-15px);
+  }
+}
+
+@keyframes fadeOutDown {
+  to {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+}
+
+/* ========================================
+   ANIMACIONES DE ATENCIÓN - MÁS SUTILES
+======================================== */
+
+/* Pulso suave */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+/* Shake rápido */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25%, 75% {
+    transform: translateX(-4px);
+  }
+  50% {
+    transform: translateX(4px);
+  }
+}
+
+/* Heartbeat rápido */
+@keyframes heartbeat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  20%, 40% {
+    transform: scale(1.08);
+  }
+}
+
+/* Wobble rápido */
+@keyframes wobble {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-6px) rotate(-3deg);
+  }
+  50% {
+    transform: translateX(5px) rotate(2deg);
+  }
+  75% {
+    transform: translateX(-3px) rotate(-1deg);
+  }
+}
+
+/* Swing rápido */
+@keyframes swing {
+  20% {
+    transform: rotate(10deg);
+  }
+  40% {
+    transform: rotate(-8deg);
+  }
+  60% {
+    transform: rotate(4deg);
+  }
+  80% {
+    transform: rotate(-2deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+/* ========================================
+   ANIMACIONES DE ÉXITO - INSTANTÁNEAS
+======================================== */
+
+@keyframes drawCheck {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes successCircle {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ========================================
+   ANIMACIONES DE CARGA - MÁS RÁPIDAS
+======================================== */
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dotPulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes skeletonLoading {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+@keyframes progressBar {
+  to {
+    width: 100%;
+  }
+}
+
+/* ========================================
+   EFECTOS DE HOVER - INSTANTÁNEOS
+======================================== */
+
+@keyframes liftUp {
+  to {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 3px rgba(2, 136, 209, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(2, 136, 209, 0.7);
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+/* ========================================
+   ANIMACIONES ESPECIALES - OPTIMIZADAS
+======================================== */
+
+@keyframes confetti-fall {
+  to {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes floating {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes typing {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ========================================
+   CLASES UTILITARIAS - VELOCIDADES OPTIMIZADAS
+======================================== */
+
+/* Entrada de elementos - RÁPIDO (0.25s) */
+.animate-fade-in-down {
+  animation: fadeInDown 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-fade-in-left {
+  animation: fadeInLeft 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-fade-in-right {
+  animation: fadeInRight 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-zoom-in {
+  animation: zoomIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-bounce-in {
+  animation: bounceIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Salida de elementos - INSTANTÁNEO (0.15s) */
+.animate-fade-out {
+  animation: fadeOut 0.15s ease-out;
+}
+
+.animate-fade-out-up {
+  animation: fadeOutUp 0.2s ease-out;
+}
+
+.animate-fade-out-down {
+  animation: fadeOutDown 0.2s ease-out;
+}
+
+/* Atención - MÁS RÁPIDAS */
+.animate-pulse {
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.animate-shake {
+  animation: shake 0.3s ease-in-out;
+}
+
+.animate-heartbeat {
+  animation: heartbeat 0.8s ease-in-out infinite;
+}
+
+.animate-wobble {
+  animation: wobble 0.5s ease-in-out;
+}
+
+.animate-swing {
+  animation: swing 0.6s ease-in-out;
+}
+
+/* Carga - OPTIMIZADAS */
+.animate-spin {
+  animation: spin 0.6s linear infinite;
+}
+
+.animate-floating {
+  animation: floating 2s ease-in-out infinite;
+}
+
+/* Delays reducidos para animaciones escalonadas */
+.delay-50 {
+  animation-delay: 0.05s;
+}
+
+.delay-100 {
+  animation-delay: 0.1s;
+}
+
+.delay-150 {
+  animation-delay: 0.15s;
+}
+
+.delay-200 {
+  animation-delay: 0.2s;
+}
+
+.delay-250 {
+  animation-delay: 0.25s;
+}
+
+/* ========================================
+   TRANSICIONES INSTANTÁNEAS
+======================================== */
+
+.transition-all {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-fast {
+  transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-slow {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========================================
+   MICROINTERACCIONES EN BOTONES - RÁPIDAS
+======================================== */
+
+.btn-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-ripple::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: translate(-50%, -50%);
+  transition: width 0.4s, height 0.4s;
+}
+
+.btn-ripple:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Botón con elevación - INSTANTÁNEA */
+.btn-lift {
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.btn-lift:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Botón con pulso */
+.btn-pulse-on-hover:hover {
+  animation: pulse 0.8s ease-in-out infinite;
+}
+
+/* ========================================
+   MICROINTERACCIONES EN TARJETAS - RÁPIDAS
+======================================== */
+
+.card-hover {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 8px 16px rgba(2, 136, 209, 0.15);
+}
+
+.card-hover:active {
+  transform: translateY(-1px) scale(1);
+  transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========================================
+   MICROINTERACCIONES EN INPUTS - INSTANTÁNEAS
+======================================== */
+
+.input-focus {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.input-focus:focus {
+  transform: scale(1.01);
+  box-shadow: 0 0 0 3px rgba(2, 136, 209, 0.1);
+}
+
+/* Label flotante animado */
+.floating-label {
+  position: relative;
+}
+
+.floating-label input:focus + label,
+.floating-label input:not(:placeholder-shown) + label {
+  transform: translateY(-25px) scale(0.85);
+  color: #0288d1;
+}
+
+.floating-label label {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  color: #999;
+}
+
+/* ========================================
+   EFECTOS DE NOTIFICACIÓN - RÁPIDOS
+======================================== */
+
+.notification-enter {
+  animation: fadeInRight 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.notification-exit {
+  animation: fadeOutRight 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeOutRight {
+  to {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+}
+
+/* ========================================
+   SKELETON SCREENS - MÁS RÁPIDOS
+======================================== */
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: skeletonLoading 1s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+.skeleton-text {
+  height: 16px;
+  margin-bottom: 8px;
+}
+
+.skeleton-title {
+  height: 24px;
+  width: 60%;
+  margin-bottom: 12px;
+}
+
+.skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+
+/* ========================================
+   PROGRESS INDICATORS - OPTIMIZADOS
+======================================== */
+
+.progress-ring {
+  transform: rotate(-90deg);
+}
+
+.progress-ring-circle {
+  transition: stroke-dashoffset 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Loading dots - MÁS RÁPIDOS */
+.loading-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.loading-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #0288d1;
+  animation: dotPulse 0.8s ease-in-out infinite;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* ========================================
+   EFECTOS DE ÉXITO/ERROR - RÁPIDOS
+======================================== */
+
+.success-checkmark {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto;
+}
+
+.success-checkmark .check-icon {
+  width: 80px;
+  height: 80px;
+  position: relative;
+  border-radius: 50%;
+  box-sizing: content-box;
+  border: 4px solid #00c853;
+  animation: successCircle 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========================================
+   SCROLL ANIMATIONS - MÁS RÁPIDAS
+======================================== */
+
+.scroll-fade-in {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+              transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scroll-fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ========================================
+   MODO OSCURO - AJUSTES
+======================================== */
+
+body.dark-mode .skeleton {
+  background: linear-gradient(90deg, #2d3748 25%, #1a202c 50%, #2d3748 75%);
+  background-size: 200px 100%;
+}
+
+/* ========================================
+   PERFORMANCE OPTIMIZATIONS
+======================================== */
+
+.btn-lift,
+.card-hover,
+.animate-floating,
+.input-focus {
+  will-change: transform;
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* GPU acceleration para animaciones suaves */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Reducir motion para usuarios con preferencias de accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,19 +1,360 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>MediTime - Ajustes</title>
-    <link rel="stylesheet" href="css/settings.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ajustes - MyVita</title>
+  
+  <!-- Bootstrap CSS -->
+  
+  <!-- Google Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Estilos principales -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/ui-enhancements.css">
+  <link rel="stylesheet" href="css/settings.css">
+  <!-- CSS del modo oscuro -->
+  <link rel="stylesheet" href="css/dark-mode.css">
+  <link rel="stylesheet" href="css/animations.css">
+<link rel="stylesheet" href="css/menu-bottom.css">
 </head>
 <body>
-    <div class="settings-container">
-        <h1>Ajustes</h1>
-        <button id="audioButton">Desactivar Audios</button>
-        <button id="gamesButton">Minijuegos</button>
-        <button id="suggestionsButton">Sugerencias</button>
-        <button id="aboutButton">Acerca de</button>
-        <button id="backButton">Regresar</button>
-    </div>
-    <script src="cordova.js"></script> <!-- Incluir cordova.js -->
-    <script src="js/settings.js"></script>
+  <div class="app-container">
+    <!-- Encabezado -->
+    <header class="app-header">
+      <h1 class="titulo-app">MyVita</h1>
+      <h2 class="subtitle">
+        <span class="material-icons">settings</span> Ajustes
+      </h2>
+    </header>
+
+    <!-- Contenido principal -->
+    <main class="app-content">
+      <ul class="settings-list">
+        <!-- PERFIL -->
+        <li class="settings-item" id="profileSection">
+          <div class="item-left">
+            <span class="material-icons">account_circle</span>
+            <div class="item-info">
+              <span class="item-text" id="userName">Cargando...</span>
+              <small class="item-subtext" id="lastLogin">Último acceso: —</small>
+            </div>
+          </div>
+        </li>
+
+        <!-- Sonido de alarmas -->
+        <li class="settings-item">
+          <div class="item-left">
+            <span class="material-icons">volume_up</span>
+            <span class="item-text">Sonido de alarmas</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="audioCheckbox" checked>
+            <span class="slider"></span>
+          </label>
+        </li>
+
+        <!-- MODO OSCURO -->
+        <li class="settings-item">
+          <div class="item-left">
+            <span class="material-icons">dark_mode</span>
+            <span class="item-text">Modo oscuro</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="darkModeToggle">
+            <span class="slider"></span>
+          </label>
+        </li>
+
+        <!-- Tamaño de letra -->
+        <li class="settings-item">
+          <div class="item-left">
+            <span class="material-icons">format_size</span>
+            <span class="item-text">Tamaño de letra</span>
+          </div>
+          <select id="fontSizeSelector" class="font-selector">
+            <option value="small">Pequeño</option>
+            <option value="medium" selected>Mediano</option>
+            <option value="large">Grande</option>
+          </select>
+        </li>
+
+        <!-- Enviar sugerencias -->
+        <li class="settings-item">
+          <div class="item-left">
+            <span class="material-icons">lightbulb</span>
+            <span class="item-text">Enviar sugerencias</span>
+          </div>
+          <button class="action-btn btn-suggest" id="suggestionsButton">
+            <span class="material-icons">send</span>
+          </button>
+        </li>
+
+        <!-- Acerca de la app -->
+        <li class="settings-item">
+          <div class="item-left">
+            <span class="material-icons">info</span>
+            <span class="item-text">Acerca de la app</span>
+          </div>
+          <button class="action-btn btn-about" id="aboutButton">
+            <span class="material-icons">help_outline</span>
+          </button>
+        </li>
+
+        <!-- ── RELOJ INTELIGENTE ──────────────────────────────── -->
+        <li class="settings-item" id="watchSection" style="cursor:pointer" onclick="abrirConfigReloj()">
+          <div class="item-left">
+            <span class="material-icons" style="color:#0288d1">watch</span>
+            <div>
+              <span class="item-text">Reloj inteligente</span>
+              <small id="watchStatus" style="display:block;font-size:.75rem;color:#9ca3af">
+                Sin configurar
+              </small>
+            </div>
+          </div>
+          <span class="material-icons" style="color:#9ca3af">chevron_right</span>
+        </li>
+
+        <!-- Modal configuración reloj -->
+        <div id="watchModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);
+             z-index:9000;align-items:flex-end;justify-content:center">
+          <div style="background:#fff;width:100%;max-width:480px;border-radius:20px 20px 0 0;
+               padding:24px;max-height:80vh;overflow-y:auto">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+              <h3 style="margin:0;font-size:1.1rem;font-weight:700">⌚ Reloj inteligente</h3>
+              <button onclick="document.getElementById('watchModal').style.display='none'"
+                style="background:none;border:none;cursor:pointer">
+                <span class="material-icons">close</span>
+              </button>
+            </div>
+
+            <!-- MAC actual -->
+            <div style="background:#f0f4ff;border-radius:12px;padding:12px 16px;margin-bottom:16px">
+              <p style="margin:0;font-size:.8rem;color:#666">MAC del reloj guardada:</p>
+              <p id="watchMacDisplay" style="margin:4px 0 0;font-weight:600;font-family:monospace;
+                 font-size:.95rem">—</p>
+            </div>
+
+            <!-- Ingresar MAC manualmente -->
+            <div style="margin-bottom:16px">
+              <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:6px">
+                Ingresar MAC manualmente
+              </label>
+              <div style="display:flex;gap:8px">
+                <input id="watchMacInput" type="text" placeholder="76:37:72:59:1A:E0"
+                  style="flex:1;border:1.5px solid #ddd;border-radius:10px;padding:10px 14px;
+                         font-family:monospace;font-size:.9rem"
+                  value="76:37:72:59:1A:E0">
+                <button onclick="guardarMacReloj()"
+                  style="background:linear-gradient(135deg,#0288d1,#00c853);color:#fff;
+                         border:none;border-radius:10px;padding:10px 16px;font-weight:600;cursor:pointer">
+                  Guardar
+                </button>
+              </div>
+              <p style="font-size:.75rem;color:#999;margin:6px 0 0">
+                Encuéntrala en Da Fit → Dispositivo → Información → MAC
+              </p>
+            </div>
+
+            <!-- Escanear -->
+            <button onclick="escanearReloj()"
+              style="width:100%;background:#f0f4ff;border:1.5px solid #0288d1;color:#0288d1;
+                     border-radius:12px;padding:12px;font-weight:600;cursor:pointer;margin-bottom:12px">
+              <span class="material-icons" style="vertical-align:middle;font-size:18px">bluetooth_searching</span>
+              Escanear relojes cercanos
+            </button>
+
+            <!-- Lista de relojes encontrados -->
+            <div id="watchScanList" style="display:none">
+              <p style="font-size:.85rem;font-weight:600;margin-bottom:8px">Relojes encontrados:</p>
+              <div id="watchDeviceList"></div>
+            </div>
+
+            <!-- Probar notificación -->
+            <button onclick="probarReloj()"
+              style="width:100%;background:linear-gradient(135deg,#0288d1,#00c853);color:#fff;
+                     border:none;border-radius:12px;padding:12px;font-weight:600;cursor:pointer;margin-bottom:8px">
+              <span class="material-icons" style="vertical-align:middle;font-size:18px">notifications_active</span>
+              Probar notificación
+            </button>
+
+            <div id="watchLog" style="font-size:.78rem;color:#666;min-height:20px;text-align:center"></div>
+          </div>
+        </div>
+
+        <!-- Conectar Bluetooth -->
+        <li class="settings-item">
+          <div class="item-left">
+            <span class="material-icons">bluetooth</span>
+            <span class="item-text">Conectar a dispositivo Bluetooth</span>
+          </div>
+          <button class="action-btn btn-bluetooth-connect" id="btnConnect">
+            <span class="material-icons">power</span>
+          </button>
+        </li>
+
+        <!-- Desconectar Bluetooth -->
+        <li class="settings-item">
+          <div class="item-left">
+            <span class="material-icons">link_off</span>
+            <span class="item-text">Desconectar Bluetooth</span>
+          </div>
+          <button class="action-btn btn-bluetooth-disconnect" id="btnDisconnect">
+            <span class="material-icons">link_off</span>
+          </button>
+        </li>
+
+        <!-- Modo Cuidador -->
+        <li class="settings-item" onclick="window.location.href='caregiver.html'" style="cursor:pointer">
+          <div class="item-left">
+            <span class="material-icons" style="color:#0288d1">favorite</span>
+            <div>
+              <span class="item-text">Modo Cuidador</span>
+              <small style="display:block;font-size:.75rem;color:#9ca3af">Genera QR o sigue a un paciente</small>
+            </div>
+          </div>
+          <span class="material-icons" style="color:#9ca3af">chevron_right</span>
+        </li>
+
+        <!-- Inventario de pastillas -->
+        <li class="settings-item" onclick="window.location.href='inventario.html'" style="cursor:pointer">
+          <div class="item-left">
+            <span class="material-icons" style="color:#00c853">inventory_2</span>
+            <div>
+              <span class="item-text">Inventario</span>
+              <small style="display:block;font-size:.75rem;color:#9ca3af">Control de pastillas restantes</small>
+            </div>
+          </div>
+          <span class="material-icons" style="color:#9ca3af">chevron_right</span>
+        </li>
+
+        <!-- Historial Médico PDF -->
+        <li class="settings-item" onclick="window.location.href='historial.html'" style="cursor:pointer">
+          <div class="item-left">
+            <span class="material-icons" style="color:#0288d1">picture_as_pdf</span>
+            <div>
+              <span class="item-text">Historial Médico</span>
+              <small style="display:block;font-size:.75rem;color:#9ca3af">Exportar PDF de tus tomas y medicamentos</small>
+            </div>
+          </div>
+          <span class="material-icons" style="color:#9ca3af">chevron_right</span>
+        </li>
+
+        <!-- Cerrar sesión -->
+        <li class="settings-item">
+          <div class="item-left">
+            <span class="material-icons text-danger">logout</span>
+            <span class="item-text">Cerrar sesión</span>
+          </div>
+          <button class="action-btn btn-logout" id="logoutBtn">
+            <span class="material-icons">exit_to_app</span>
+          </button>
+        </li>
+      </ul>
+    </main>
+
+  <audio id="alarmSound" src="audio/alarm.mp3" loop></audio>
+  
+  <script src="cordova.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/watch.js"></script>
+  <script src="js/settings.js"></script>
+  <script>
+    // ── Inicializar estado del reloj al cargar ──────────────────
+    document.addEventListener('DOMContentLoaded', function() {
+      actualizarEstadoReloj();
+    });
+
+    function actualizarEstadoReloj() {
+      if (!window.WatchConnector) return;
+      const mac = WatchConnector.getMAC();
+      const el  = document.getElementById('watchStatus');
+      const disp = document.getElementById('watchMacDisplay');
+      if (el) el.textContent = mac ? '✅ ' + mac : 'Sin configurar — toca para añadir';
+      if (disp) disp.textContent = mac || '—';
+    }
+
+    function abrirConfigReloj() {
+      actualizarEstadoReloj();
+      document.getElementById('watchModal').style.display = 'flex';
+    }
+
+    function guardarMacReloj() {
+      const mac = document.getElementById('watchMacInput').value.trim();
+      if (!mac || mac.length < 17) {
+        document.getElementById('watchLog').textContent = '⚠️ MAC inválida (formato: XX:XX:XX:XX:XX:XX)';
+        return;
+      }
+      WatchConnector.setMAC(mac);
+      actualizarEstadoReloj();
+      document.getElementById('watchLog').textContent = '✅ MAC guardada: ' + mac;
+    }
+
+    function escanearReloj() {
+      if (!window.WatchConnector) {
+        document.getElementById('watchLog').textContent = '⚠️ BLE no disponible en navegador — usa la app en el celular';
+        return;
+      }
+      const list = document.getElementById('watchDeviceList');
+      const cont = document.getElementById('watchScanList');
+      const log  = document.getElementById('watchLog');
+      list.innerHTML = '';
+      cont.style.display = 'block';
+      log.textContent = '🔍 Buscando relojes...';
+
+      WatchConnector.scan(
+        (device) => {
+          const btn = document.createElement('button');
+          btn.style.cssText = 'width:100%;text-align:left;background:#f9f9f9;border:1px solid #eee;' +
+            'border-radius:10px;padding:10px 14px;margin-bottom:6px;cursor:pointer;font-size:.85rem';
+          btn.innerHTML = '<strong>' + (device.name || 'Sin nombre') + '</strong><br>' +
+            '<span style="font-family:monospace;color:#666">' + device.id + '</span>';
+          btn.onclick = () => {
+            document.getElementById('watchMacInput').value = device.id;
+            guardarMacReloj();
+          };
+          list.appendChild(btn);
+          log.textContent = 'Encontrado: ' + (device.name || device.id);
+        },
+        (err) => {
+          log.textContent = '❌ Error al escanear: ' + err;
+        },
+        10000
+      );
+
+      setTimeout(() => {
+        if (list.children.length === 0)
+          log.textContent = '⚠️ No se encontraron relojes. Asegúrate de que el reloj esté encendido y en rango.';
+        else
+          log.textContent = '✅ Escaneo terminado — ' + list.children.length + ' dispositivo(s)';
+      }, 11000);
+    }
+
+    function probarReloj() {
+      const log = document.getElementById('watchLog');
+      if (!window.WatchConnector || !WatchConnector.getMAC()) {
+        log.textContent = '⚠️ Guarda la MAC del reloj primero';
+        return;
+      }
+      log.textContent = '⏳ Conectando al reloj...';
+      WatchConnector.notifyMedicamento('Paracetamol 500mg', '08:00')
+        .then(ok => {
+          log.textContent = ok
+            ? '✅ Notificación enviada al reloj'
+            : '⚠️ Se conectó pero no pudo enviar — el reloj puede recibir notificaciones via Da Fit de todas formas';
+        })
+        .catch(e => {
+          log.textContent = '❌ ' + e.message;
+        });
+    }
+  </script>
+  <script src="js/dark-mode.js"></script>
+  <script src="js/animations.js"></script>
+  <script src="js/menu-bottom.js"></script>
+
 </body>
 </html>
