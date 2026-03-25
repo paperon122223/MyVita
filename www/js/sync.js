@@ -2,8 +2,8 @@
 // sync.js — Sincronización SQLite ↔ Supabase (CORREGIDO)
 // ================================================================
 
-const SUPABASE_URL  = 'https://ocieybkcehoxlvmdgvpf.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jaWV5YmtjZWhveGx2bWRndnBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MTUzMDUsImV4cCI6MjA4NzM5MTMwNX0.8aasJNmNmUOi-5cNiXNl4LAAIfipt7H9J6ysFABnfEs';
+const SUPABASE_URL  = ;
+const SUPABASE_ANON = ;
 
 let _syncInitialized = false;
 
