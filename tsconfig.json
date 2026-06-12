@@ -1,0 +1,14 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true
+  },
+  "exclude": [
+    "node_modules",
+    "files_context",
+    "native_backup",
+    "__tests__",
+    "src/services/bleService.ts",
+    "src/hooks/useBLE.ts"
+  ]
+}
