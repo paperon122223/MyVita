@@ -130,7 +130,7 @@ export const useContactosEmergencia = (usuarioId: string): UseDatabaseState<Cont
       setLoading(true);
       setError(null);
       const result = await databaseService.ejecutar(
-        'SELECT * FROM contactos_emergencia WHERE usuarioId = ? ORDER BY prioridad',
+        'SELECT * FROM contactos_emergencia WHERE usuario_id = ? AND deleted_at IS NULL ORDER BY prioridad',
         [usuarioId],
       );
       setData(result || []);

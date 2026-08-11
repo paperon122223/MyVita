@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   ScrollView,
@@ -7,193 +7,192 @@ import {
   Platform,
   TouchableOpacity,
   Text,
+  TextInput,
 } from 'react-native';
-import { TextInput, Button, SegmentedButtons } from 'react-native-paper';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useDispatch } from 'react-redux';
 import authService from '../../services/authService';
-import { useForm } from '../../hooks/useForm';
-import { validateRegisterForm } from '../../utils/validators';
+import { GradientButton } from '../../components/ui/GradientButton';
+import { isValidEmail } from '../../utils/validators';
 import { registerSuccess, registerFailure } from '../../redux/slices/userSlice';
-import { AuthNavigationProp } from '../../navigation/types';
+import { DesignSystem as DS } from '../../theme/designSystem';
 
-interface RegisterFormValues {
-  nombre: string;
-  email: string;
-  password: string;
-  passwordConfirm: string;
-  edad: string;
-  genero: string;
+interface FieldProps {
+  label: string;
+  icon: keyof typeof MaterialIcons.glyphMap;
+  value: string;
+  onChange: (text: string) => void;
+  placeholder: string;
+  secure?: boolean;
+  keyboardType?: 'default' | 'email-address' | 'phone-pad';
+  editable?: boolean;
 }
 
-interface RegisterScreenProps {
-  navigation: AuthNavigationProp;
+function Field({ label, icon, value, onChange, placeholder, secure, keyboardType, editable }: FieldProps) {
+  return (
+    <View style={styles.field}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.inputWrapper}>
+        <MaterialIcons name={icon} size={22} color={DS.colors.subtle} />
+        <TextInput
+          style={styles.input}
+          placeholder={placeholder}
+          placeholderTextColor={DS.colors.subtle}
+          secureTextEntry={secure}
+          keyboardType={keyboardType || 'default'}
+          autoCapitalize={keyboardType === 'email-address' ? 'none' : 'sentences'}
+          value={value}
+          onChangeText={onChange}
+          editable={editable !== false}
+        />
+      </View>
+    </View>
+  );
 }
 
-function RegisterScreen({ navigation }: RegisterScreenProps) {
+function RegisterScreen({ navigation }: any) {
   const dispatch = useDispatch();
+  const [nombre, setNombre] = useState('');
+  const [usuario, setUsuario] = useState('');
+  const [email, setEmail] = useState('');
+  const [telefono, setTelefono] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const form = useForm<RegisterFormValues>({
-    initialValues: {
-      nombre: '',
-      email: '',
-      password: '',
-      passwordConfirm: '',
-      edad: '',
-      genero: '',
-    },
-    validate: (values) =>
-      validateRegisterForm(
-        values.nombre,
-        values.email,
-        values.password,
-        values.passwordConfirm,
-        parseInt(values.edad, 10) || 0,
-        values.genero,
-      ),
-    onSubmit: async (values) => {
-      try {
-        const response = await authService.register({
-          nombre: values.nombre,
-          email: values.email,
-          password: values.password,
-          edad: parseInt(values.edad),
-          genero: values.genero as 'M' | 'F' | 'Otro',
-        });
+  // Validación heredada de register.js: nombre, usuario, correo y contraseña
+  // obligatorios; contraseña mínima de 4 caracteres
+  const handleRegister = async () => {
+    setError(null);
+    if (!nombre.trim() || !usuario.trim() || !email.trim() || !password) {
+      setError('Nombre, usuario, correo y contraseña son obligatorios');
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setError('El correo electrónico no es válido');
+      return;
+    }
+    // El usuario debe ser alfanumérico (regla de Supabase en el backend)
+    if (!/^[a-zA-Z0-9]+$/.test(usuario.trim())) {
+      setError('El usuario solo puede tener letras y números, sin espacios');
+      return;
+    }
+    if (password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+    if (password !== passwordConfirm) {
+      setError('Las contraseñas no coinciden');
+      return;
+    }
 
-        dispatch(
-          registerSuccess({
-            user: response.user,
-            tokens: response.tokens,
-          }),
-        );
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Error en registro';
-        dispatch(registerFailure(message));
-        throw error;
-      }
-    },
-  });
+    setLoading(true);
+    try {
+      const response = await authService.register({
+        nombre: nombre.trim(),
+        usuario: usuario.trim(),
+        email: email.trim(),
+        telefono: telefono.trim() || undefined,
+        password,
+      });
+      dispatch(registerSuccess({ user: response.user, tokens: response.tokens }));
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Error en el registro';
+      setError(message);
+      dispatch(registerFailure(message));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={styles.container}
+    >
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.headerContainer}>
+          <LinearGradient colors={DS.statGradients.signature} style={styles.logoTile}>
+            <MaterialIcons name="person-add" size={34} color="#fff" />
+          </LinearGradient>
           <Text style={styles.title}>Crear Cuenta</Text>
-          <Text style={styles.subtitle}>Únete a MyVita</Text>
+          <Text style={styles.subtitle}>Únete a MyVita y cuida tu salud</Text>
         </View>
 
-        <View style={styles.formContainer}>
-          <TextInput
-            mode="outlined"
-            label="Nombre Completo"
+        <View style={styles.formCard}>
+          <Field
+            label="NOMBRE COMPLETO"
+            icon="badge"
+            value={nombre}
+            onChange={setNombre}
             placeholder="Juan Pérez"
-            value={form.values.nombre}
-            onChangeText={(text) => form.handleChange('nombre', text)}
-            onBlur={() => form.handleBlur('nombre')}
-            error={!!form.errors.nombre && form.touched.nombre}
-            style={styles.input}
-            editable={!form.isSubmitting}
+            editable={!loading}
           />
-          {form.errors.nombre && form.touched.nombre && (
-            <Text style={styles.errorText}>{form.errors.nombre}</Text>
-          )}
-
-          <TextInput
-            mode="outlined"
-            label="Email"
-            placeholder="tu@email.com"
+          <Field
+            label="USUARIO"
+            icon="alternate-email"
+            value={usuario}
+            onChange={setUsuario}
+            placeholder="juanp"
+            editable={!loading}
+          />
+          <Field
+            label="CORREO ELECTRÓNICO"
+            icon="mail-outline"
+            value={email}
+            onChange={setEmail}
+            placeholder="tu@correo.com"
             keyboardType="email-address"
-            autoCapitalize="none"
-            value={form.values.email}
-            onChangeText={(text) => form.handleChange('email', text)}
-            onBlur={() => form.handleBlur('email')}
-            error={!!form.errors.email && form.touched.email}
-            style={styles.input}
-            editable={!form.isSubmitting}
+            editable={!loading}
           />
-          {form.errors.email && form.touched.email && (
-            <Text style={styles.errorText}>{form.errors.email}</Text>
-          )}
-
-          <TextInput
-            mode="outlined"
-            label="Contraseña"
-            placeholder="Mín. 8 caracteres"
-            secureTextEntry
-            value={form.values.password}
-            onChangeText={(text) => form.handleChange('password', text)}
-            onBlur={() => form.handleBlur('password')}
-            error={!!form.errors.password && form.touched.password}
-            style={styles.input}
-            editable={!form.isSubmitting}
+          <Field
+            label="TELÉFONO (OPCIONAL)"
+            icon="phone"
+            value={telefono}
+            onChange={setTelefono}
+            placeholder="55 1234 5678"
+            keyboardType="phone-pad"
+            editable={!loading}
           />
-          {form.errors.password && form.touched.password && (
-            <Text style={styles.errorText}>{form.errors.password}</Text>
-          )}
-
-          <TextInput
-            mode="outlined"
-            label="Confirmar Contraseña"
+          <Field
+            label="CONTRASEÑA"
+            icon="lock-outline"
+            value={password}
+            onChange={setPassword}
+            placeholder="Mínimo 8 caracteres"
+            secure
+            editable={!loading}
+          />
+          <Field
+            label="CONFIRMAR CONTRASEÑA"
+            icon="lock-outline"
+            value={passwordConfirm}
+            onChange={setPasswordConfirm}
             placeholder="••••••••"
-            secureTextEntry
-            value={form.values.passwordConfirm}
-            onChangeText={(text) => form.handleChange('passwordConfirm', text)}
-            onBlur={() => form.handleBlur('passwordConfirm')}
-            error={!!form.errors.passwordConfirm && form.touched.passwordConfirm}
-            style={styles.input}
-            editable={!form.isSubmitting}
+            secure
+            editable={!loading}
           />
-          {form.errors.passwordConfirm && form.touched.passwordConfirm && (
-            <Text style={styles.errorText}>{form.errors.passwordConfirm}</Text>
+
+          {error && (
+            <View style={styles.errorBox}>
+              <MaterialIcons name="error-outline" size={16} color={DS.colors.error} />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
           )}
 
-          <TextInput
-            mode="outlined"
-            label="Edad"
-            placeholder="65"
-            keyboardType="number-pad"
-            value={form.values.edad}
-            onChangeText={(text) => form.handleChange('edad', text)}
-            onBlur={() => form.handleBlur('edad')}
-            error={!!form.errors.edad && form.touched.edad}
-            style={styles.input}
-            editable={!form.isSubmitting}
-          />
-          {form.errors.edad && form.touched.edad && (
-            <Text style={styles.errorText}>{form.errors.edad}</Text>
-          )}
-
-          <Text style={styles.label}>Género</Text>
-          <SegmentedButtons
-            value={form.values.genero}
-            onValueChange={(value) => form.handleChange('genero', value)}
-            buttons={[
-              { value: 'M', label: 'Masculino' },
-              { value: 'F', label: 'Femenino' },
-              { value: 'Otro', label: 'Otro' },
-            ]}
-            style={styles.segmentedButtons}
-          />
-          {form.errors.genero && form.touched.genero && (
-            <Text style={styles.errorText}>{form.errors.genero}</Text>
-          )}
-
-          {form.submitError && <Text style={styles.errorText}>{form.submitError}</Text>}
-
-          <Button
-            mode="contained"
-            onPress={form.handleSubmit}
+          <GradientButton
+            label={loading ? 'Registrando…' : 'Registrarse'}
+            onPress={handleRegister}
+            loading={loading}
             style={styles.submitButton}
-            disabled={form.isSubmitting}
-            loading={form.isSubmitting}
-          >
-            {form.isSubmitting ? 'Registrando...' : 'Registrarse'}
-          </Button>
+          />
 
           <View style={styles.linkContainer}>
             <Text style={styles.linkText}>¿Ya tienes cuenta? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')} disabled={form.isSubmitting}>
-              <Text style={styles.linkButton}>Inicia sesión aquí</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')} disabled={loading}>
+              <Text style={styles.linkButton}>Inicia sesión</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -205,73 +204,103 @@ function RegisterScreen({ navigation }: RegisterScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: DS.colors.surface,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
+    padding: 22,
+    paddingVertical: 40,
   },
   headerContainer: {
-    marginBottom: 30,
+    marginBottom: 22,
     alignItems: 'center',
+  },
+  logoTile: {
+    width: 76,
+    height: 76,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+    ...DS.shadows.lg,
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#00A86B',
-    marginBottom: 8,
+    fontFamily: DS.fonts.extrabold,
+    color: DS.colors.primary,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 16,
+    fontFamily: DS.fonts.medium,
+    color: DS.colors.muted,
   },
-  formContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+  formCard: {
+    backgroundColor: DS.colors.card,
+    borderRadius: DS.borderRadius.xl,
+    padding: 22,
+    ...DS.shadows.md,
   },
-  input: {
-    marginBottom: 12,
+  field: {
+    marginBottom: 16,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
-    marginTop: 12,
+    fontSize: 16,
+    fontFamily: DS.fonts.semibold,
+    color: DS.colors.text,
     marginBottom: 8,
   },
-  segmentedButtons: {
-    marginBottom: 12,
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: DS.colors.surfaceContainerLow,
+    borderRadius: DS.borderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: DS.colors.border,
+    paddingHorizontal: 14,
+    minHeight: 56,
+  },
+  input: {
+    flex: 1,
+    paddingVertical: 14,
+    fontSize: 18,
+    fontFamily: DS.fonts.regular,
+    color: DS.colors.text,
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#ffdad6',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
   },
   errorText: {
-    color: '#d32f2f',
-    fontSize: 12,
-    marginTop: -8,
-    marginBottom: 12,
+    flex: 1,
+    fontSize: 15,
+    color: '#93000a',
+    fontFamily: DS.fonts.medium,
   },
   submitButton: {
-    marginTop: 20,
-    paddingVertical: 8,
+    marginTop: 4,
   },
   linkContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 20,
+    marginTop: 18,
   },
   linkText: {
-    color: '#666',
-    fontSize: 14,
+    color: DS.colors.muted,
+    fontSize: 16,
+    fontFamily: DS.fonts.regular,
   },
   linkButton: {
-    color: '#00A86B',
-    fontSize: 14,
-    fontWeight: '600',
+    color: DS.colors.primary,
+    fontSize: 16,
+    fontFamily: DS.fonts.bold,
   },
 });
 

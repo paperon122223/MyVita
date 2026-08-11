@@ -1,9 +1,18 @@
-import React, { useEffect } from 'react';
-import { StatusBar, StyleSheet } from 'react-native';
+import React, { useEffect, useCallback } from 'react';
+import { StatusBar, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
 import { MD3DarkTheme, MD3LightTheme, PaperProvider } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as SplashScreen from 'expo-splash-screen';
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+  Poppins_700Bold,
+  Poppins_800ExtraBold,
+} from '@expo-google-fonts/poppins';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import store from './src/redux/store';
@@ -14,11 +23,14 @@ import { useDarkMode } from './src/hooks/useDarkMode';
 
 dayjs.locale('es');
 
+// Mantener el splash visible hasta que las fuentes estén listas
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
 const lightTheme = {
   ...MD3LightTheme,
   colors: {
     ...MD3LightTheme.colors,
-    primary: '#00A86B',
+    primary: '#0288d1',
   },
 };
 
@@ -26,7 +38,7 @@ const darkTheme = {
   ...MD3DarkTheme,
   colors: {
     ...MD3DarkTheme.colors,
-    primary: '#00A86B',
+    primary: '#0288d1',
   },
 };
 
@@ -55,7 +67,7 @@ function AppContent() {
       <SafeAreaProvider>
         <StatusBar
           barStyle={isDark ? 'light-content' : 'dark-content'}
-          backgroundColor={isDark ? '#1a1a1a' : '#ffffff'}
+          backgroundColor={isDark ? '#0f172a' : '#f0f4f8'}
         />
         <RootNavigator />
       </SafeAreaProvider>
@@ -64,11 +76,31 @@ function AppContent() {
 }
 
 function App() {
+  const [fontsLoaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
+    Poppins_800ExtraBold,
+  });
+
+  const onLayoutRootView = useCallback(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null; // el splash sigue visible
+  }
+
   return (
     <GestureHandlerRootView style={styles.container}>
-      <Provider store={store}>
-        <AppContent />
-      </Provider>
+      <View style={styles.container} onLayout={onLayoutRootView}>
+        <Provider store={store}>
+          <AppContent />
+        </Provider>
+      </View>
     </GestureHandlerRootView>
   );
 }

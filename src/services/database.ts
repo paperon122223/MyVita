@@ -5,9 +5,13 @@
 // ================================================================
 
 import * as SQLite from 'expo-sqlite';
+import { addLocalDays, localDateFromKey, localDateKey } from '../utils/localDate';
 
 let db: SQLite.SQLiteDatabase | null = null;
 let dbInitialized = false;
+// Candado de inicialización: evita que dos llamadas concurrentes a init()
+// abran la misma BD dos veces (causaba NullPointerException en Android)
+let initPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
 // ═══════════════════════════════════════════════════════════════
 // INICIALIZACIÓN
@@ -15,26 +19,38 @@ let dbInitialized = false;
 
 export const DatabaseService = {
   /**
-   * Inicializar BD (solo una vez)
+   * Inicializar BD (solo una vez, seguro ante llamadas concurrentes)
    */
   async init(): Promise<SQLite.SQLiteDatabase> {
     if (dbInitialized && db) {
       return db;
     }
 
-    try {
-      console.log('⏳ Inicializando BD...');
-
-      db = await SQLite.openDatabaseAsync('myvita.db');
-      await this.createTables(db);
-      dbInitialized = true;
-
-      console.log('✅ BD inicializada correctamente');
-      return db;
-    } catch (error) {
-      console.error('❌ Error inicializando BD:', error);
-      throw error;
+    if (initPromise) {
+      return initPromise;
     }
+
+    initPromise = (async () => {
+      try {
+        console.log('⏳ Inicializando BD...');
+
+        const database = await SQLite.openDatabaseAsync('myvita.db');
+        await this.createTables(database);
+        await this.runMigrations(database);
+
+        db = database;
+        dbInitialized = true;
+
+        console.log('✅ BD inicializada correctamente');
+        return database;
+      } catch (error) {
+        console.error('❌ Error inicializando BD:', error);
+        initPromise = null; // permitir reintento si falló
+        throw error;
+      }
+    })();
+
+    return initPromise;
   },
 
   /**
@@ -209,6 +225,19 @@ export const DatabaseService = {
         synced_at TEXT,
         deleted_at TEXT
       )`,
+
+      // Cola persistente para cambios realizados sin conexión
+      `CREATE TABLE IF NOT EXISTS sync_queue (
+        id TEXT PRIMARY KEY,
+        tabla TEXT NOT NULL,
+        operacion TEXT NOT NULL,
+        record_id TEXT NOT NULL,
+        datos TEXT NOT NULL,
+        intentos INTEGER DEFAULT 0,
+        ultimo_error TEXT,
+        created_at TEXT NOT NULL,
+        synced_at TEXT
+      )`,
     ];
 
     for (const sql of tables) {
@@ -224,6 +253,8 @@ export const DatabaseService = {
       `CREATE INDEX IF NOT EXISTS idx_alarmas_usuario_fecha ON alarmas(usuario_id, fecha)`,
       `CREATE INDEX IF NOT EXISTS idx_tomas_usuario_fecha ON tomas(usuario_id, hora_toma)`,
       `CREATE INDEX IF NOT EXISTS idx_medicamentos_usuario ON medicamentos(usuario_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_sync_queue_pendiente ON sync_queue(synced_at, created_at)`,
+      `CREATE INDEX IF NOT EXISTS idx_sync_queue_registro ON sync_queue(tabla, record_id, synced_at)`,
     ];
 
     for (const sql of indexes) {
@@ -233,6 +264,304 @@ export const DatabaseService = {
         console.error('Error creando índice:', error);
       }
     }
+  },
+
+  /**
+   * Migraciones: agrega columnas nuevas a tablas existentes.
+   * ALTER TABLE lanza error si la columna ya existe — se ignora de forma segura.
+   */
+  async runMigrations(database: SQLite.SQLiteDatabase): Promise<void> {
+    const migraciones = [
+      `ALTER TABLE alarmas ADD COLUMN frecuencia TEXT DEFAULT 'una_vez'`,
+      `ALTER TABLE alarmas ADD COLUMN dias_semana TEXT`,
+      `ALTER TABLE alarmas ADD COLUMN fecha_fin TEXT`,
+      `ALTER TABLE alarmas ADD COLUMN recurrencia_id TEXT`,
+    ];
+    for (const sql of migraciones) {
+      try {
+        await database.execAsync(sql);
+      } catch {
+        // La columna ya existe — seguro ignorar
+      }
+    }
+
+    // Versiones anteriores guardaban la contraseña sin cifrar para login
+    // offline. Se elimina de todas las instalaciones durante la migración.
+    await database.runAsync(
+      `UPDATE usuarios SET password = '__remote_auth__' WHERE password != '__remote_auth__'`,
+    );
+  },
+
+  /** Guarda o combina un cambio pendiente para que sobreviva al cierre de la app. */
+  async encolarCambio(
+    tabla: string,
+    operacion: 'INSERT' | 'UPDATE' | 'DELETE',
+    recordId: string,
+    datos: Record<string, any>,
+  ): Promise<void> {
+    const database = await this.getDB();
+    const existente = await database.getFirstAsync<any>(
+      `SELECT * FROM sync_queue
+       WHERE tabla = ? AND record_id = ? AND synced_at IS NULL
+       ORDER BY created_at DESC LIMIT 1`,
+      [tabla, recordId],
+    );
+
+    // Si se creó y eliminó antes de subirlo, no hay nada que enviar.
+    if (existente?.operacion === 'INSERT' && operacion === 'DELETE') {
+      await database.runAsync(
+        `DELETE FROM sync_queue WHERE tabla = ? AND record_id = ? AND synced_at IS NULL`,
+        [tabla, recordId],
+      );
+      return;
+    }
+
+    const operacionFinal = existente?.operacion === 'INSERT' ? 'INSERT' : operacion;
+    await database.runAsync(
+      `DELETE FROM sync_queue WHERE tabla = ? AND record_id = ? AND synced_at IS NULL`,
+      [tabla, recordId],
+    );
+    await database.runAsync(
+      `INSERT INTO sync_queue
+       (id, tabla, operacion, record_id, datos, intentos, created_at)
+       VALUES (?, ?, ?, ?, ?, 0, ?)`,
+      [
+        `sync_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        tabla,
+        operacionFinal,
+        recordId,
+        JSON.stringify(datos),
+        new Date().toISOString(),
+      ],
+    );
+  },
+
+  async getSyncQueuePendiente(limite = 100): Promise<any[]> {
+    const database = await this.getDB();
+    return database.getAllAsync(
+      `SELECT * FROM sync_queue WHERE synced_at IS NULL ORDER BY created_at ASC LIMIT ?`,
+      [limite],
+    );
+  },
+
+  async marcarSyncQueueCompleto(id: string): Promise<void> {
+    const database = await this.getDB();
+    await database.runAsync(`UPDATE sync_queue SET synced_at = ?, ultimo_error = NULL WHERE id = ?`, [
+      new Date().toISOString(),
+      id,
+    ]);
+  },
+
+  async registrarErrorSyncQueue(id: string, error: string): Promise<void> {
+    const database = await this.getDB();
+    await database.runAsync(
+      `UPDATE sync_queue SET intentos = intentos + 1, ultimo_error = ? WHERE id = ?`,
+      [error.slice(0, 500), id],
+    );
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // RECURRENCIA DE ALARMAS
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Crear alarma con recurrencia: genera instancias para los próximos
+   * `diasAdelante` días según la frecuencia indicada.
+   * Devuelve el recurrencia_id (= ID de la primera instancia).
+   */
+  async crearAlarmaConRecurrencia(
+    alarma: any,
+    frecuencia: 'una_vez' | 'diaria' | 'semanal',
+    diasSemana?: number[],
+    fechaFin?: string,
+    diasAdelante = 30,
+  ): Promise<string> {
+    const database = await this.getDB();
+    const now = new Date().toISOString();
+
+    const inicio = alarma.fecha ? localDateFromKey(alarma.fecha) : localDateFromKey(localDateKey());
+
+    const fechaFinDate = fechaFin ? new Date(fechaFin + 'T00:00:00') : null;
+    const diasSemanaJson = diasSemana && diasSemana.length > 0 ? JSON.stringify(diasSemana) : null;
+
+    // El ID de la primera instancia se convierte en recurrencia_id para toda la serie
+    const recurrenciaId = `alarm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    const limiteLoop = frecuencia === 'una_vez' ? 0 : diasAdelante;
+    let insertadas = 0;
+
+    for (let i = 0; i <= limiteLoop; i++) {
+      const fecha = addLocalDays(inicio, i);
+
+      if (fechaFinDate && fecha > fechaFinDate) break;
+
+      if (frecuencia === 'semanal' && diasSemana && diasSemana.length > 0) {
+        if (!diasSemana.includes(fecha.getDay())) continue;
+      }
+
+      const fechaStr = localDateKey(fecha);
+      const id =
+        insertadas === 0
+          ? recurrenciaId
+          : `alarm_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 6)}`;
+
+      await database.runAsync(
+        `INSERT INTO alarmas (
+          id, usuario_id, medicamento_id, medicamento_nombre, dosis,
+          hora_toma, fecha, tono, volumen, esta_activa,
+          frecuencia, dias_semana, fecha_fin, recurrencia_id,
+          created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          alarma.usuarioId,
+          alarma.medicamentoId || null,
+          alarma.medicamentoNombre || null,
+          alarma.dosis || null,
+          alarma.horaToma,
+          fechaStr,
+          alarma.tono || 'default.mp3',
+          alarma.volumen || 80,
+          1,
+          frecuencia,
+          diasSemanaJson,
+          fechaFin || null,
+          frecuencia === 'una_vez' ? null : recurrenciaId,
+          now,
+          now,
+        ],
+      );
+      const row = await database.getFirstAsync<any>(`SELECT * FROM alarmas WHERE id = ?`, [id]);
+      if (row) await this.encolarCambio('alarmas', 'INSERT', id, row);
+      insertadas++;
+    }
+
+    return recurrenciaId;
+  },
+
+  /**
+   * Provisiona instancias faltantes para todas las series activas.
+   * Se llama en cada init del AlarmService para garantizar que los
+   * próximos `diasAdelante` días tengan sus filas en BD.
+   */
+  async generarInstanciasSiFaltan(usuarioId: string, diasAdelante = 30): Promise<void> {
+    const database = await this.getDB();
+
+    // Un representante por serie (la fila con fecha más antigua)
+    const templates = await database.getAllAsync<any>(
+      `SELECT recurrencia_id, medicamento_id, medicamento_nombre, dosis,
+              hora_toma, frecuencia, dias_semana, fecha_fin, tono, volumen
+       FROM alarmas
+       WHERE usuario_id = ? AND frecuencia != 'una_vez'
+         AND recurrencia_id IS NOT NULL AND deleted_at IS NULL
+       GROUP BY recurrencia_id`,
+      [usuarioId],
+    );
+
+    if (templates.length === 0) return;
+
+    const hoy = localDateFromKey(localDateKey());
+    const now = new Date().toISOString();
+
+    for (const tpl of templates) {
+      const diasSemana: number[] = tpl.dias_semana ? JSON.parse(tpl.dias_semana) : [];
+      const fechaFinDate = tpl.fecha_fin ? new Date(tpl.fecha_fin + 'T00:00:00') : null;
+
+      for (let i = 0; i <= diasAdelante; i++) {
+        const fecha = addLocalDays(hoy, i);
+
+        if (fechaFinDate && fecha > fechaFinDate) break;
+
+        if (tpl.frecuencia === 'semanal') {
+          if (!diasSemana.includes(fecha.getDay())) continue;
+        }
+
+        const fechaStr = localDateKey(fecha);
+
+        const existe = await database.getFirstAsync<{ id: string }>(
+          `SELECT id FROM alarmas
+           WHERE recurrencia_id = ? AND fecha = ? AND deleted_at IS NULL`,
+          [tpl.recurrencia_id, fechaStr],
+        );
+
+        if (!existe) {
+          const id = `alarm_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 6)}`;
+          await database.runAsync(
+            `INSERT INTO alarmas (
+              id, usuario_id, medicamento_id, medicamento_nombre, dosis,
+              hora_toma, fecha, tono, volumen, esta_activa,
+              frecuencia, dias_semana, fecha_fin, recurrencia_id,
+              created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              id,
+              usuarioId,
+              tpl.medicamento_id || null,
+              tpl.medicamento_nombre,
+              tpl.dosis || null,
+              tpl.hora_toma,
+              fechaStr,
+              tpl.tono || 'default.mp3',
+              tpl.volumen || 80,
+              1,
+              tpl.frecuencia,
+              tpl.dias_semana || null,
+              tpl.fecha_fin || null,
+              tpl.recurrencia_id,
+              now,
+              now,
+            ],
+          );
+          const row = await database.getFirstAsync<any>(`SELECT * FROM alarmas WHERE id = ?`, [id]);
+          if (row) await this.encolarCambio('alarmas', 'INSERT', id, row);
+        }
+      }
+    }
+  },
+
+  /**
+   * Soft-delete de una sola instancia de alarma
+   */
+  async eliminarAlarma(alarmaId: string): Promise<void> {
+    const database = await this.getDB();
+    const now = new Date().toISOString();
+    await database.runAsync(
+      `UPDATE alarmas SET deleted_at = ?, updated_at = ? WHERE id = ?`,
+      [now, now, alarmaId],
+    );
+    const row = await database.getFirstAsync<any>(`SELECT * FROM alarmas WHERE id = ?`, [alarmaId]);
+    if (row) await this.encolarCambio('alarmas', 'DELETE', alarmaId, row);
+  },
+
+  /**
+   * Soft-delete de todas las instancias futuras (incluyendo hoy) de una serie
+   */
+  async eliminarInstanciasFuturas(recurrenciaId: string, desdeFecha: string): Promise<void> {
+    const database = await this.getDB();
+    const now = new Date().toISOString();
+    const rows = await database.getAllAsync<any>(
+      `SELECT * FROM alarmas WHERE recurrencia_id = ? AND fecha >= ? AND deleted_at IS NULL`,
+      [recurrenciaId, desdeFecha],
+    );
+    await database.runAsync(
+      `UPDATE alarmas SET deleted_at = ?, updated_at = ?
+       WHERE recurrencia_id = ? AND fecha >= ? AND deleted_at IS NULL`,
+      [now, now, recurrenciaId, desdeFecha],
+    );
+    for (const row of rows) {
+      await this.encolarCambio('alarmas', 'DELETE', row.id, { ...row, deleted_at: now, updated_at: now });
+    }
+  },
+
+  /** IDs de una serie que pueden tener notificaciones nativas pendientes. */
+  async getIdsSerieDesde(recurrenciaId: string, desdeFecha: string): Promise<string[]> {
+    const database = await this.getDB();
+    const rows = await database.getAllAsync<{ id: string }>(
+      `SELECT id FROM alarmas
+       WHERE recurrencia_id = ? AND fecha >= ? AND deleted_at IS NULL`,
+      [recurrenciaId, desdeFecha],
+    );
+    return rows.map((row) => row.id);
   },
 
   /**
@@ -253,6 +582,7 @@ export const DatabaseService = {
       await db.closeAsync();
       db = null;
       dbInitialized = false;
+      initPromise = null;
     }
   },
 
@@ -266,6 +596,40 @@ export const DatabaseService = {
        WHERE usuario_id = ? AND fecha = ? AND deleted_at IS NULL
        ORDER BY hora_toma ASC`,
       [usuarioId, fecha],
+    );
+  },
+
+  /** Instancias desde hoy para mostrar la próxima toma aunque aún no sea hoy. */
+  async getAlarmasDesde(
+    usuarioId: string,
+    desdeFecha: string,
+    hastaFecha: string,
+  ): Promise<any[]> {
+    const database = await this.getDB();
+    return database.getAllAsync(
+      `SELECT * FROM alarmas
+       WHERE usuario_id = ? AND fecha BETWEEN ? AND ? AND deleted_at IS NULL
+       ORDER BY fecha ASC, hora_toma ASC`,
+      [usuarioId, desdeFecha, hastaFecha],
+    );
+  },
+
+  /** Alarmas activas que deben quedar programadas en el sistema operativo. */
+  async getAlarmasProgramables(
+    usuarioId: string,
+    desdeFecha: string,
+    hastaFecha: string,
+  ): Promise<any[]> {
+    const database = await this.getDB();
+    return database.getAllAsync(
+      `SELECT * FROM alarmas
+       WHERE usuario_id = ? AND fecha BETWEEN ? AND ?
+         AND esta_activa = 1
+         AND recordatorio_silenciado = 0
+         AND tomado = 0
+         AND deleted_at IS NULL
+       ORDER BY fecha ASC, hora_toma ASC`,
+      [usuarioId, desdeFecha, hastaFecha],
     );
   },
 
@@ -298,6 +662,9 @@ export const DatabaseService = {
         now,
       ],
     );
+
+    const row = await database.getFirstAsync<any>(`SELECT * FROM alarmas WHERE id = ?`, [id]);
+    if (row) await this.encolarCambio('alarmas', 'INSERT', id, row);
 
     return id;
   },
@@ -337,6 +704,8 @@ export const DatabaseService = {
           now,
         ],
       );
+      const actualizada = await database.getFirstAsync<any>(`SELECT * FROM alarmas WHERE id = ?`, [alarmaId]);
+      if (actualizada) await this.encolarCambio('alarmas', 'UPDATE', alarmaId, actualizada);
     }
   },
 
@@ -346,7 +715,8 @@ export const DatabaseService = {
   async crearUsuario(usuario: any): Promise<string> {
     const database = await this.getDB();
     const now = new Date().toISOString();
-    const id = `user_${Date.now()}`;
+    // Si viene del backend (Supabase) respetamos su UUID; si no, generamos uno local
+    const id = usuario.id || `user_${Date.now()}`;
 
     await database.runAsync(
       `INSERT INTO usuarios (
@@ -358,7 +728,7 @@ export const DatabaseService = {
         id,
         usuario.nombre,
         usuario.email,
-        usuario.password,
+        usuario.password || '__remote_auth__',
         usuario.usuario || null,
         usuario.telefono || null,
         usuario.fechaNacimiento || null,
@@ -370,6 +740,18 @@ export const DatabaseService = {
     );
 
     return id;
+  },
+
+  /**
+   * USUARIOS - Buscar por id (restaurar sesión)
+   */
+  async getUsuarioPorId(id: string): Promise<any | null> {
+    const database = await this.getDB();
+    const row = await database.getFirstAsync<any>(
+      `SELECT * FROM usuarios WHERE id = ? AND deleted_at IS NULL`,
+      [id],
+    );
+    return row ?? null;
   },
 
   /**
@@ -422,6 +804,9 @@ export const DatabaseService = {
       ],
     );
 
+    const row = await database.getFirstAsync<any>(`SELECT * FROM medicamentos WHERE id = ?`, [id]);
+    if (row) await this.encolarCambio('medicamentos', 'INSERT', id, row);
+
     return id;
   },
 
@@ -431,7 +816,10 @@ export const DatabaseService = {
   async getNoSincronizados(tabla: string, usuarioId: string): Promise<any[]> {
     const database = await this.getDB();
     return database.getAllAsync(
-      `SELECT * FROM ${tabla} WHERE usuario_id = ? AND synced_at IS NULL AND deleted_at IS NULL`,
+      `SELECT * FROM ${tabla}
+       WHERE usuario_id = ?
+         AND (synced_at IS NULL OR updated_at > synced_at)
+       ORDER BY updated_at ASC`,
       [usuarioId],
     );
   },
@@ -443,6 +831,175 @@ export const DatabaseService = {
     const database = await this.getDB();
     const now = new Date().toISOString();
     await database.runAsync(`UPDATE ${tabla} SET synced_at = ? WHERE id = ?`, [now, id]);
+  },
+
+  /**
+   * STATS - Resumen de hoy (port de DB.Stats.getResumenHoy)
+   */
+  async getResumenHoy(usuarioId: string): Promise<{
+    total: number;
+    tomadas: number;
+    pendientes: number;
+    adherencia: number;
+  }> {
+    const hoy = localDateKey();
+    const rows = await this.getAlarmasDelDia(usuarioId, hoy);
+    const total = rows.length;
+    const tomadas = rows.filter((r: any) => r.tomado === 1).length;
+    const pendientes = total - tomadas;
+    const adherencia = total > 0 ? Math.round((tomadas / total) * 100) : 0;
+    return { total, tomadas, pendientes, adherencia };
+  },
+
+  /**
+   * STATS - Cantidad de medicamentos activos
+   */
+  async getMedicamentosActivos(usuarioId: string): Promise<number> {
+    const database = await this.getDB();
+    const row = await database.getFirstAsync<{ n: number }>(
+      `SELECT COUNT(*) AS n FROM medicamentos WHERE usuario_id = ? AND deleted_at IS NULL`,
+      [usuarioId],
+    );
+    return row?.n ?? 0;
+  },
+
+  /**
+   * STATS - Racha de días consecutivos con todas las tomas cumplidas
+   * (port de DB.Stats.getRachaDias)
+   */
+  async getRachaDias(usuarioId: string): Promise<number> {
+    const database = await this.getDB();
+    let racha = 0;
+
+    for (let i = 0; i < 60; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const fecha = localDateKey(d);
+
+      const rows = await database.getAllAsync<any>(
+        `SELECT tomado FROM alarmas WHERE usuario_id = ? AND fecha = ? AND deleted_at IS NULL`,
+        [usuarioId, fecha],
+      );
+
+      if (rows.length === 0) {
+        // Hoy sin alarmas no rompe la racha; un día anterior sin alarmas sí la corta
+        if (i === 0) continue;
+        break;
+      }
+
+      const todasTomadas = rows.every((r) => r.tomado === 1);
+      if (todasTomadas) {
+        racha++;
+      } else {
+        // Hoy con pendientes aún no rompe la racha
+        if (i === 0) continue;
+        break;
+      }
+    }
+
+    return racha;
+  },
+
+  /**
+   * STATS - Datos de la semana para la gráfica (port de DB.Stats.getSemana)
+   */
+  async getSemana(usuarioId: string): Promise<{
+    labels: string[];
+    tomadas: number[];
+    perdidas: number[];
+  }> {
+    const database = await this.getDB();
+    const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const labels: string[] = [];
+    const tomadas: number[] = [];
+    const perdidas: number[] = [];
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const fecha = localDateKey(d);
+      labels.push(dias[d.getDay()]);
+
+      const rows = await database.getAllAsync<any>(
+        `SELECT tomado FROM alarmas WHERE usuario_id = ? AND fecha = ? AND deleted_at IS NULL`,
+        [usuarioId, fecha],
+      );
+      tomadas.push(rows.filter((r) => r.tomado === 1).length);
+      perdidas.push(rows.filter((r) => r.tomado !== 1).length);
+    }
+
+    return { labels, tomadas, perdidas };
+  },
+
+  /**
+   * DIARIO - Entradas recientes (para contexto del chat IA)
+   */
+  async getDiarioReciente(usuarioId: string, limite = 5): Promise<any[]> {
+    const database = await this.getDB();
+    return database.getAllAsync(
+      `SELECT * FROM diario_entradas
+       WHERE usuario_id = ? AND deleted_at IS NULL
+       ORDER BY fecha DESC LIMIT ?`,
+      [usuarioId, limite],
+    );
+  },
+
+  /**
+   * CHAT - Guardar mensaje en historial
+   */
+  async guardarMensajeChat(usuarioId: string, rol: string, contenido: string): Promise<void> {
+    const database = await this.getDB();
+    const now = new Date().toISOString();
+    await database.runAsync(
+      `INSERT INTO chat_history (id, usuario_id, rol, contenido, timestamp, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [`chat_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`, usuarioId, rol, contenido, now, now],
+    );
+  },
+
+  /**
+   * CHAT - Obtener historial reciente
+   */
+  async getHistorialChat(usuarioId: string, limite = 50): Promise<any[]> {
+    const database = await this.getDB();
+    const rows = await database.getAllAsync<any>(
+      `SELECT * FROM chat_history WHERE usuario_id = ? ORDER BY timestamp DESC LIMIT ?`,
+      [usuarioId, limite],
+    );
+    return rows.reverse();
+  },
+
+  /**
+   * SOS - Registrar evento de emergencia
+   */
+  async registrarEventoSOS(
+    usuarioId: string,
+    latitud?: number,
+    longitud?: number,
+    mensaje?: string,
+    estado = 'abierto',
+    contactosNotificados: string[] = [],
+  ): Promise<string> {
+    const database = await this.getDB();
+    const now = new Date().toISOString();
+    const id = `sos_${Date.now()}`;
+    await database.runAsync(
+      `INSERT INTO eventos_sos
+       (id, usuario_id, latitud, longitud, mensaje, contactos_notificados, estado, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        usuarioId,
+        latitud ?? null,
+        longitud ?? null,
+        mensaje ?? null,
+        JSON.stringify(contactosNotificados),
+        estado,
+        now,
+        now,
+      ],
+    );
+    return id;
   },
 
   /**

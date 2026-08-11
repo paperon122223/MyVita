@@ -43,16 +43,24 @@ export type SettingsStackParamList = {
   NotificationSettings: undefined;
 };
 
+export type MoreStackParamList = {
+  MoreMenu: undefined;
+  Chat: undefined;
+  Diary: undefined;
+  Mapa: undefined;
+  Cuidador: undefined;
+  Settings: undefined;
+  Privacy: undefined;
+  Terms: undefined;
+};
+
 // Main Tab Navigator
-// (las pantallas viven directamente en las tabs, sin stacks anidados aún)
 export type MainTabParamList = {
   DashboardTab: undefined;
   MedicationsTab: undefined;
   AlarmsTab: undefined;
-  ChatTab: undefined;
-  DiaryTab: undefined;
   SOSTab: undefined;
-  SettingsTab: undefined;
+  MoreTab: NavigatorScreenParams<MoreStackParamList> | undefined;
 };
 
 // Root Navigator

@@ -1,8 +1,9 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { UIState } from '../../types';
+import { UIState, ThemeMode } from '../../types';
 
 const initialState: UIState = {
   darkMode: false,
+  themeMode: 'auto',
   selectedTab: 0,
   navigationReady: false,
   loading: {},
@@ -18,6 +19,9 @@ const uiSlice = createSlice({
     },
     setDarkMode: (state, action: PayloadAction<boolean>) => {
       state.darkMode = action.payload;
+    },
+    setThemeMode: (state, action: PayloadAction<ThemeMode>) => {
+      state.themeMode = action.payload;
     },
     setSelectedTab: (state, action: PayloadAction<number>) => {
       state.selectedTab = action.payload;
@@ -43,6 +47,7 @@ const uiSlice = createSlice({
 export const {
   toggleDarkMode,
   setDarkMode,
+  setThemeMode,
   setSelectedTab,
   setNavigationReady,
   setLoading,

@@ -1,5 +1,8 @@
 // API Configuration
-export const API_BASE_URL = 'https://api.myvita.example.com'; // TODO: update with real endpoint
+// Backend local para demostración. El teléfono debe estar en la misma red que
+// la laptop. Si cambia la red, se debe actualizar esta dirección IPv4.
+export const CLOUD_BACKEND_ENABLED = true;
+export const API_BASE_URL = 'http://192.168.1.73:3000/api';
 export const API_TIMEOUT = 30000; // 30 seconds
 export const SYNC_INTERVAL = 300000; // 5 minutes
 export const OFFLINE_QUEUE_RETRY_INTERVAL = 60000; // 1 minute
@@ -28,6 +31,9 @@ export const STORAGE_KEYS = {
   REFRESH_TOKEN: '@myvita:refresh_token',
   USER_ID: '@myvita:user_id',
   DARK_MODE: '@myvita:dark_mode',
+  THEME_MODE: '@myvita:theme_mode',
+  NOTIF_SOUND: '@myvita:notif_sound',
+  NOTIF_VIBRATE: '@myvita:notif_vibrate',
   LAST_SYNC: '@myvita:last_sync',
   SYNC_QUEUE_VERSION: '@myvita:sync_queue_version',
 } as const;

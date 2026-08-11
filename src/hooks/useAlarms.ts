@@ -7,7 +7,7 @@ import {
   loadAlarmsFailure,
   updateStatistics,
 } from '../redux/slices/alarmSlice';
-import { Alarma, AlarmStatistics } from '../types';
+import { Alarma, AlarmStatistics, FrecuenciaAlarma } from '../types';
 
 interface UseAlarmsResult {
   alarms: Alarma[];
@@ -16,7 +16,14 @@ interface UseAlarmsResult {
   error: string | null;
   markTaken: (alarmaId: string) => Promise<void>;
   silenceAlarm: (alarmaId: string) => Promise<void>;
-  createAlarm: (alarm: Partial<Alarma>) => Promise<string>;
+  createAlarm: (
+    alarm: Partial<Alarma>,
+    frecuencia?: FrecuenciaAlarma,
+    diasSemana?: number[],
+    fechaFin?: string,
+  ) => Promise<string>;
+  deleteAlarm: (alarmaId: string) => Promise<void>;
+  deleteAlarmSeries: (recurrenciaId: string) => Promise<void>;
   refreshAlarms: () => Promise<void>;
 }
 
@@ -102,10 +109,15 @@ export const useAlarms = (usuarioId: string): UseAlarmsResult => {
   );
 
   const createAlarm = useCallback(
-    async (alarm: Partial<Alarma>) => {
+    async (
+      alarm: Partial<Alarma>,
+      frecuencia: FrecuenciaAlarma = 'una_vez',
+      diasSemana?: number[],
+      fechaFin?: string,
+    ) => {
       try {
         setError(null);
-        const id = await alarmService.crearAlarma(alarm);
+        const id = await alarmService.crearAlarma(alarm, frecuencia, diasSemana, fechaFin);
         const updated = alarmService.getAlarmas();
         setAlarms(updated);
         return id;
@@ -117,6 +129,38 @@ export const useAlarms = (usuarioId: string): UseAlarmsResult => {
     },
     [],
   );
+
+  const deleteAlarm = useCallback(async (alarmaId: string) => {
+    try {
+      setError(null);
+      await alarmService.eliminarAlarma(alarmaId);
+      const updated = alarmService.getAlarmas();
+      const stats = await alarmService.getEstadisticas();
+      setAlarms(updated);
+      setStatistics(stats);
+      dispatch(updateStatistics(stats));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error deleting alarm';
+      setError(message);
+      throw err;
+    }
+  }, [dispatch]);
+
+  const deleteAlarmSeries = useCallback(async (recurrenciaId: string) => {
+    try {
+      setError(null);
+      await alarmService.eliminarSerie(recurrenciaId);
+      const updated = alarmService.getAlarmas();
+      const stats = await alarmService.getEstadisticas();
+      setAlarms(updated);
+      setStatistics(stats);
+      dispatch(updateStatistics(stats));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error deleting alarm series';
+      setError(message);
+      throw err;
+    }
+  }, [dispatch]);
 
   const refreshAlarms = useCallback(async () => {
     await initializeAlarms();
@@ -130,6 +174,8 @@ export const useAlarms = (usuarioId: string): UseAlarmsResult => {
     markTaken,
     silenceAlarm,
     createAlarm,
+    deleteAlarm,
+    deleteAlarmSeries,
     refreshAlarms,
   };
 };

@@ -3,8 +3,10 @@ export interface User {
   id: string;
   nombre: string;
   email: string;
-  edad: number;
-  genero: 'M' | 'F' | 'Otro';
+  usuario?: string;
+  telefono?: string;
+  edad?: number;
+  genero?: 'M' | 'F' | 'Otro';
   telefonoEmergencia?: string;
   direccion?: string;
   foto?: string;
@@ -58,6 +60,8 @@ export interface Inventario {
 
 // Alarms & Medication History
 // (forma alineada con el esquema SQLite y alarmService)
+export type FrecuenciaAlarma = 'una_vez' | 'diaria' | 'semanal';
+
 export interface Alarma {
   id: string;
   usuarioId: string;
@@ -73,7 +77,10 @@ export interface Alarma {
   recordatorioSilenciado: number;
   tomado: number;
   descripcion?: string;
-  frecuencia?: string;
+  frecuencia?: FrecuenciaAlarma;
+  diasSemana?: number[]; // [0-6] donde 0=Domingo, 1=Lunes … 6=Sábado
+  fechaFin?: string; // YYYY-MM-DD, undefined = sin fin
+  recurrenciaId?: string; // agrupa todas las instancias de una serie
   silenciada?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -252,8 +259,11 @@ export interface MedicationState {
   error: string | null;
 }
 
+export type ThemeMode = 'light' | 'dark' | 'auto';
+
 export interface UIState {
   darkMode: boolean;
+  themeMode: ThemeMode;
   selectedTab: number;
   navigationReady: boolean;
   loading: Record<string, boolean>;

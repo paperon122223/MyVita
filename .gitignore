@@ -38,6 +38,7 @@ local.properties
 # node.js
 #
 node_modules/
+.g/
 npm-debug.log
 yarn-error.log
 
@@ -47,8 +48,21 @@ dist/
 web-build/
 expo-env.d.ts
 
+# Proyectos nativos generados por expo prebuild (CNG)
+/android
+/ios
+
 # Backup de los proyectos nativos del RN CLI original (no usar)
 native_backup/
+
+# Material de referencia (app Cordova vieja + backend con secretos reales)
+# NUNCA commitear: contiene .env con llaves de Supabase y GROQ
+files_context/
+
+# Secretos
+.env
+*.env
+!.env.example
 
 # Claude Code local settings
 .claude/settings.local.json

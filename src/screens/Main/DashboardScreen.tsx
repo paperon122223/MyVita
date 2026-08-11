@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   ScrollView,
@@ -7,171 +7,220 @@ import {
   Text,
   TouchableOpacity,
 } from 'react-native';
-import { Card, ProgressBar } from 'react-native-paper';
+import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSelector } from 'react-redux';
 import { useAlarms } from '../../hooks/useAlarms';
 import { useDarkMode } from '../../hooks/useDarkMode';
+import databaseService from '../../services/database';
+import { StatCard } from '../../components/ui/StatCard';
+import { AdherenceRing } from '../../components/ui/AdherenceRing';
+import { DesignSystem as DS } from '../../theme/designSystem';
 import { RootState } from '../../types';
-import { DashboardNavigationProp } from '../../navigation/types';
 import dayjs from 'dayjs';
 
-interface DashboardScreenProps {
-  navigation: DashboardNavigationProp;
+function saludoPorHora(nombre: string): { titulo: string; frase: string } {
+  const hora = new Date().getHours();
+  if (hora >= 5 && hora < 12) {
+    return { titulo: `¡Buenos días, ${nombre}!`, frase: 'Cada paso cuenta para tu bienestar. ¡Sigue así!' };
+  }
+  if (hora >= 12 && hora < 19) {
+    return { titulo: `¡Buenas tardes, ${nombre}!`, frase: 'Vas muy bien hoy, sigue cuidándote.' };
+  }
+  return { titulo: `¡Buenas noches, ${nombre}!`, frase: 'Descansa, mañana será un gran día.' };
 }
 
-function DashboardScreen({ navigation }: DashboardScreenProps) {
+function calificaAdherencia(p: number): string {
+  if (p >= 90) return 'Excelente';
+  if (p >= 70) return 'Muy bien';
+  if (p >= 50) return 'Regular';
+  return 'Mejorable';
+}
+
+function DashboardScreen({ navigation }: any) {
   const currentUser = useSelector((state: RootState) => state.user.currentUser);
   const { isDark } = useDarkMode();
   const userId = currentUser?.id || '';
-  const { alarms, statistics, loading, refreshAlarms } = useAlarms(userId);
+  const { alarms, statistics, loading, refreshAlarms, markTaken } = useAlarms(userId);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeMeds, setActiveMeds] = useState(0);
+  const [racha, setRacha] = useState(0);
+
+  const loadExtraStats = useCallback(async () => {
+    if (!userId) return;
+    const results = await Promise.allSettled([
+      databaseService.getMedicamentosActivos(userId),
+      databaseService.getRachaDias(userId),
+    ]);
+    if (results[0].status === 'fulfilled') setActiveMeds(results[0].value);
+    if (results[1].status === 'fulfilled') setRacha(results[1].value);
+  }, [userId]);
+
+  useEffect(() => {
+    loadExtraStats();
+  }, [loadExtraStats]);
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      await refreshAlarms();
+      await Promise.allSettled([refreshAlarms(), loadExtraStats()]);
     } finally {
       setIsRefreshing(false);
     }
-  }, [refreshAlarms]);
+  }, [refreshAlarms, loadExtraStats]);
 
-  const colors = {
-    background: isDark ? '#1a1a1a' : '#f5f5f5',
-    text: isDark ? '#fff' : '#000',
-    cardBg: isDark ? '#2a2a2a' : '#fff',
-    primary: '#00A86B',
-    secondary: '#FF6B6B',
-  };
+  const saludo = saludoPorHora(currentUser?.nombre?.split(' ')[0] || 'Usuario');
+  const proximasAlarmas = alarms.filter((a) => a.tomado !== 1).slice(0, 3);
+
+  const bg = isDark ? DS.colors.surfaceDark : DS.colors.surface;
+  const cardBg = isDark ? DS.colors.cardDark : DS.colors.card;
+  const textColor = isDark ? DS.colors.textDark : DS.colors.text;
+  const mutedColor = isDark ? DS.colors.mutedDark : DS.colors.muted;
+  const borderColor = isDark ? DS.colors.borderDark : DS.colors.border;
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[styles.container, { backgroundColor: bg }]}
       refreshControl={<RefreshControl refreshing={isRefreshing || loading} onRefresh={onRefresh} />}
       showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.content}
     >
-      <View style={styles.header}>
-        <View>
-          <Text style={[styles.greeting, { color: colors.text }]}>Hola, {currentUser?.nombre || 'Usuario'}</Text>
-          <Text style={[styles.date, { color: '#888' }]}>{dayjs().format('dddd, D [de] MMMM YYYY')}</Text>
+      {/* Tarjeta de bienvenida con gradiente + anillo de adherencia */}
+      <Animated.View entering={FadeInUp.duration(500)}>
+        <LinearGradient
+          colors={DS.statGradients.signature}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.welcomeCard}
+        >
+          <View style={styles.welcomeText}>
+            <Text style={styles.welcomeTitle}>{saludo.titulo}</Text>
+            <Text style={styles.welcomeQuote}>"{saludo.frase}"</Text>
+          </View>
+          <AdherenceRing progress={statistics.adherencia} onGradient size={108} sublabel="META" />
+        </LinearGradient>
+      </Animated.View>
+
+      {/* Estadísticas 2x2 con tiles suaves */}
+      <Animated.View entering={FadeInDown.delay(120).duration(500)} style={styles.statsGrid}>
+        <StatCard
+          icon="insights"
+          label="Adherencia"
+          value={calificaAdherencia(statistics.adherencia)}
+          variant="blue"
+          dark={isDark}
+        />
+        <StatCard
+          icon="medication"
+          label="Medicinas"
+          value={`${activeMeds} activas`}
+          variant="green"
+          dark={isDark}
+        />
+        <StatCard
+          icon="pending-actions"
+          label="Pendientes"
+          value={statistics.pendientes === 1 ? '1 ahora' : `${statistics.pendientes} ahora`}
+          variant="orange"
+          dark={isDark}
+        />
+        <StatCard
+          icon="local-fire-department"
+          label="Racha"
+          value={`${racha} día${racha === 1 ? '' : 's'}`}
+          variant="red"
+          dark={isDark}
+        />
+      </Animated.View>
+
+      {/* Próximas tomas */}
+      <Animated.View entering={FadeInDown.delay(220).duration(500)}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionLabel, { color: textColor }]}>Próximas tomas</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('AlarmsTab')}>
+            <Text style={styles.sectionLink}>Ver todo</Text>
+          </TouchableOpacity>
         </View>
-        <MaterialIcons name="wb-sunny" size={32} color={colors.primary} />
-      </View>
 
-      <View style={styles.content}>
-        {/* Adherence Stats */}
-        <Card style={[styles.card, { backgroundColor: colors.cardBg }]}>
-          <Card.Content>
-            <View style={styles.cardHeader}>
-              <Text style={[styles.cardTitle, { color: colors.text }]}>Adherencia Hoy</Text>
-              <MaterialIcons name="trending-up" size={24} color={colors.primary} />
-            </View>
-
-            <View style={styles.statsGrid}>
-              <View style={styles.statItem}>
-                <Text style={[styles.statValue, { color: colors.primary }]}>{statistics.total}</Text>
-                <Text style={[styles.statLabel, { color: colors.text }]}>Total</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={[styles.statValue, { color: colors.primary }]}>{statistics.tomadas}</Text>
-                <Text style={[styles.statLabel, { color: colors.text }]}>Tomadas</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={[styles.statValue, { color: colors.secondary }]}>{statistics.pendientes}</Text>
-                <Text style={[styles.statLabel, { color: colors.text }]}>Pendientes</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={[styles.statValue, { color: colors.primary }]}>
-                  {Math.round(statistics.adherencia)}%
-                </Text>
-                <Text style={[styles.statLabel, { color: colors.text }]}>Adherencia</Text>
-              </View>
-            </View>
-
-            <View style={styles.progressContainer}>
-              <ProgressBar
-                progress={statistics.adherencia / 100}
-                color={colors.primary}
-                style={styles.progressBar}
+        {proximasAlarmas.length > 0 ? (
+          proximasAlarmas.map((alarm, i) => (
+            <View key={alarm.id} style={[styles.tomaCard, { backgroundColor: cardBg }]}>
+              <View
+                style={[
+                  styles.tomaAccent,
+                  { backgroundColor: i === 0 ? DS.colors.primary : DS.colors.warning },
+                ]}
               />
-              <Text style={[styles.progressText, { color: colors.text }]}>
-                {statistics.adherencia > 80
-                  ? '¡Excelente adherencia!'
-                  : statistics.adherencia > 50
-                    ? 'Buen progreso'
-                    : 'Necesita mejora'}
-              </Text>
-            </View>
-          </Card.Content>
-        </Card>
-
-        {/* Next Medications */}
-        <Card style={[styles.card, { backgroundColor: colors.cardBg }]}>
-          <Card.Content>
-            <View style={styles.cardHeader}>
-              <Text style={[styles.cardTitle, { color: colors.text }]}>Próximas Alarmas</Text>
-              <MaterialIcons name="schedule" size={24} color={colors.primary} />
-            </View>
-
-            {alarms.length > 0 ? (
-              alarms.slice(0, 3).map((alarm, index) => (
-                <TouchableOpacity key={alarm.id} style={styles.alarmItem}>
-                  <View style={styles.alarmTime}>
-                    <Text style={[styles.alarmTimeText, { color: colors.primary }]}>{alarm.hora}</Text>
-                  </View>
-                  <View style={styles.alarmInfo}>
-                    <Text style={[styles.alarmName, { color: colors.text }]}>Medicamento {index + 1}</Text>
-                    <Text style={[styles.alarmDosis, { color: '#888' }]}>{alarm.descripcion || 'Sin descripción'}</Text>
-                  </View>
-                  <MaterialIcons name="chevron-right" size={24} color="#ccc" />
-                </TouchableOpacity>
-              ))
-            ) : (
-              <Text style={[styles.emptyText, { color: '#888' }]}>No hay alarmas programadas</Text>
-            )}
-          </Card.Content>
-        </Card>
-
-        {/* Quick Actions */}
-        <Card style={[styles.card, { backgroundColor: colors.cardBg }]}>
-          <Card.Content>
-            <Text style={[styles.cardTitle, { color: colors.text }]}>Acciones Rápidas</Text>
-            <View style={styles.actionsGrid}>
+              <View style={[styles.tomaTimeBox, { backgroundColor: isDark ? DS.colors.surfaceContainerDark : DS.colors.surfaceContainer }]}>
+                <Text style={styles.tomaTimeText}>{alarm.hora}</Text>
+              </View>
+              <View style={styles.tomaInfo}>
+                <Text style={[styles.tomaName, { color: textColor }]} numberOfLines={1}>
+                  {alarm.medicamentoNombre || 'Medicamento'}
+                </Text>
+                {!!alarm.dosis && (
+                  <Text style={[styles.tomaDosis, { color: mutedColor }]} numberOfLines={1}>
+                    {alarm.dosis}
+                  </Text>
+                )}
+              </View>
               <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: colors.primary + '20' }]}
-                onPress={() => navigation.navigate('AlarmsTab')}
+                style={styles.tomaCheck}
+                onPress={() => {
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+                  markTaken(alarm.id);
+                }}
+                accessibilityLabel={`Marcar ${alarm.medicamentoNombre} como tomado`}
               >
-                <MaterialIcons name="notifications-active" size={28} color={colors.primary} />
-                <Text style={[styles.actionLabel, { color: colors.text }]}>Alarmas</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: '#FF6B6B20' }]}
-                onPress={() => navigation.navigate('MedicationsTab')}
-              >
-                <MaterialIcons name="medication" size={28} color="#FF6B6B" />
-                <Text style={[styles.actionLabel, { color: colors.text }]}>Medicinas</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: '#FFB84D20' }]}
-                onPress={() => navigation.navigate('ChatTab')}
-              >
-                <MaterialIcons name="chat" size={28} color="#FFB84D" />
-                <Text style={[styles.actionLabel, { color: colors.text }]}>Chat IA</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: '#FF0000' + '20' }]}
-                onPress={() => navigation.navigate('SOSTab')}
-              >
-                <MaterialIcons name="emergency-share" size={28} color="#FF0000" />
-                <Text style={[styles.actionLabel, { color: colors.text }]}>SOS</Text>
+                <MaterialIcons name="check" size={24} color="#fff" />
               </TouchableOpacity>
             </View>
-          </Card.Content>
-        </Card>
-      </View>
+          ))
+        ) : (
+          <View style={[styles.emptyState, { backgroundColor: cardBg }]}>
+            <MaterialIcons name="celebration" size={40} color={DS.colors.secondary} />
+            <Text style={[styles.emptyText, { color: mutedColor }]}>
+              {alarms.length > 0 ? '¡Todo tomado por hoy!' : 'Sin alarmas para hoy'}
+            </Text>
+          </View>
+        )}
+      </Animated.View>
+
+      {/* Accesos rápidos */}
+      <Animated.View entering={FadeInDown.delay(320).duration(500)}>
+        <Text style={[styles.sectionLabel, { color: textColor, marginBottom: 12, marginTop: 8 }]}>
+          Accesos rápidos
+        </Text>
+        <View style={styles.quickRow}>
+          <TouchableOpacity
+            style={styles.quickCardWrap}
+            onPress={() => navigation.navigate('MoreTab', { screen: 'Chat' })}
+          >
+            <LinearGradient colors={DS.statGradients.signature} style={styles.quickCardFilled}>
+              <MaterialIcons name="smart-toy" size={30} color="#fff" />
+              <Text style={styles.quickLabelFilled}>Asistente IA</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.quickCardWrap, styles.quickCardOutline, { backgroundColor: cardBg, borderColor }]}
+            onPress={() => navigation.navigate('MoreTab', { screen: 'Diary' })}
+          >
+            <MaterialIcons name="book" size={30} color={DS.colors.primary} />
+            <Text style={[styles.quickLabel, { color: textColor }]}>Mi Diario</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.quickCardWrap, styles.quickCardOutline, { backgroundColor: cardBg, borderColor }]}
+            onPress={() => navigation.navigate('SOSTab')}
+          >
+            <MaterialIcons name="sos" size={30} color={DS.colors.error} />
+            <Text style={[styles.quickLabel, { color: textColor }]}>Emergencia</Text>
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
     </ScrollView>
   );
 }
@@ -180,118 +229,148 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: 20,
-    paddingTop: 10,
-  },
-  greeting: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  date: {
-    fontSize: 12,
-  },
   content: {
     padding: 16,
+    paddingBottom: 32,
   },
-  card: {
-    marginBottom: 16,
-    borderRadius: 12,
-  },
-  cardHeader: {
+  welcomeCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    borderRadius: DS.borderRadius.xl,
+    padding: 22,
     marginBottom: 16,
+    ...DS.shadows.lg,
   },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+  welcomeText: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  welcomeTitle: {
+    color: '#fff',
+    fontSize: 22,
+    fontFamily: DS.fonts.extrabold,
+    marginBottom: 8,
+  },
+  welcomeQuote: {
+    color: 'rgba(255,255,255,0.92)',
+    fontSize: 16,
+    fontFamily: DS.fonts.medium,
+    fontStyle: 'italic',
+    lineHeight: 22,
   },
   statsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-  },
-  progressContainer: {
-    marginTop: 8,
-  },
-  progressBar: {
-    height: 8,
-    borderRadius: 4,
-    marginBottom: 8,
-  },
-  progressText: {
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  alarmItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  alarmTime: {
-    width: 60,
-    alignItems: 'center',
-  },
-  alarmTimeText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  alarmInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  alarmName: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 2,
-  },
-  alarmDosis: {
-    fontSize: 12,
-  },
-  emptyText: {
-    fontSize: 14,
-    textAlign: 'center',
-    paddingVertical: 20,
-  },
-  actionsGrid: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginTop: 12,
+    rowGap: 12,
+    marginBottom: 20,
   },
-  actionButton: {
-    width: '48%',
-    aspectRatio: 1,
-    borderRadius: 12,
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
     marginBottom: 12,
   },
-  actionLabel: {
-    fontSize: 12,
-    marginTop: 8,
-    textAlign: 'center',
-    fontWeight: '500',
+  sectionLabel: {
+    fontSize: 20,
+    fontFamily: DS.fonts.bold,
+  },
+  sectionLink: {
+    fontSize: 16,
+    fontFamily: DS.fonts.semibold,
+    color: DS.colors.primary,
+  },
+  tomaCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: DS.borderRadius.lg,
+    padding: 12,
+    paddingLeft: 18,
+    marginBottom: 12,
+    overflow: 'hidden',
+    ...DS.shadows.sm,
+  },
+  tomaAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 6,
+  },
+  tomaTimeBox: {
+    borderRadius: DS.borderRadius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginRight: 14,
+    alignItems: 'center',
+    minWidth: 64,
+  },
+  tomaTimeText: {
+    fontSize: 18,
+    fontFamily: DS.fonts.extrabold,
+    color: DS.colors.primary,
+  },
+  tomaInfo: {
+    flex: 1,
+  },
+  tomaName: {
+    fontSize: 18,
+    fontFamily: DS.fonts.bold,
+  },
+  tomaDosis: {
+    fontSize: 15,
+    fontFamily: DS.fonts.regular,
+    marginTop: 2,
+  },
+  tomaCheck: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: DS.colors.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 28,
+    borderRadius: DS.borderRadius.lg,
+    gap: 10,
+    ...DS.shadows.sm,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontFamily: DS.fonts.medium,
+  },
+  quickRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  quickCardWrap: {
+    flex: 1,
+    height: 120,
+    borderRadius: DS.borderRadius.xl,
+  },
+  quickCardFilled: {
+    flex: 1,
+    borderRadius: DS.borderRadius.xl,
+    padding: 16,
+    justifyContent: 'space-between',
+    ...DS.shadows.md,
+  },
+  quickCardOutline: {
+    borderWidth: 1.5,
+    padding: 16,
+    justifyContent: 'space-between',
+    ...DS.shadows.sm,
+  },
+  quickLabelFilled: {
+    color: '#fff',
+    fontSize: 16,
+    fontFamily: DS.fonts.bold,
+  },
+  quickLabel: {
+    fontSize: 16,
+    fontFamily: DS.fonts.bold,
   },
 });
 

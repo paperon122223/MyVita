@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   ScrollView,
@@ -7,115 +7,145 @@ import {
   Platform,
   TouchableOpacity,
   Text,
+  TextInput,
+  Alert,
 } from 'react-native';
-import { TextInput, Button } from 'react-native-paper';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialIcons } from '@expo/vector-icons';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useDispatch } from 'react-redux';
 import authService from '../../services/authService';
-import { useForm } from '../../hooks/useForm';
-import { validateLoginForm } from '../../utils/validators';
+import { GradientButton } from '../../components/ui/GradientButton';
+import { isValidEmail } from '../../utils/validators';
 import { loginSuccess, loginFailure } from '../../redux/slices/userSlice';
-import { AuthNavigationProp } from '../../navigation/types';
+import { DesignSystem as DS } from '../../theme/designSystem';
 
-interface LoginFormValues {
-  email: string;
-  password: string;
-}
-
-interface LoginScreenProps {
-  navigation: AuthNavigationProp;
-}
-
-function LoginScreen({ navigation }: LoginScreenProps) {
+function LoginScreen({ navigation }: any) {
   const dispatch = useDispatch();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const form = useForm<LoginFormValues>({
-    initialValues: {
-      email: '',
-      password: '',
-    },
-    validate: (values) => validateLoginForm(values.email, values.password),
-    onSubmit: async (values) => {
-      try {
-        const response = await authService.login({
-          email: values.email,
-          password: values.password,
-        });
+  const handleLogin = async () => {
+    setError(null);
+    if (!email.trim() || !isValidEmail(email)) {
+      setError('Ingresa un correo válido');
+      return;
+    }
+    if (!password) {
+      setError('Ingresa tu contraseña');
+      return;
+    }
 
-        dispatch(
-          loginSuccess({
-            user: response.user,
-            tokens: response.tokens,
-          }),
-        );
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Error en login';
-        dispatch(loginFailure(message));
-        throw error;
-      }
-    },
-  });
+    setLoading(true);
+    try {
+      const response = await authService.login({ email: email.trim(), password });
+      dispatch(loginSuccess({ user: response.user, tokens: response.tokens }));
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Error al iniciar sesión';
+      setError(message);
+      dispatch(loginFailure(message));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={styles.container}
+    >
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.headerContainer}>
-          <Text style={styles.title}>MyVita</Text>
-          <Text style={styles.subtitle}>Gestor de Medicamentos</Text>
-        </View>
+        {/* Logo */}
+        <Animated.View entering={FadeInUp.duration(600)} style={styles.headerContainer}>
+          <LinearGradient colors={DS.statGradients.signature} style={styles.logoTile}>
+            <MaterialIcons name="medication" size={44} color="#fff" />
+          </LinearGradient>
+          <Text style={styles.title}>
+            My<Text style={{ color: DS.colors.secondary }}>Vita</Text>
+          </Text>
+          <Text style={styles.subtitle}>Tu salud, siempre a tiempo</Text>
+        </Animated.View>
 
-        <View style={styles.formContainer}>
-          <TextInput
-            mode="outlined"
-            label="Email"
-            placeholder="tu@email.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={form.values.email}
-            onChangeText={(text) => form.handleChange('email', text)}
-            onBlur={() => form.handleBlur('email')}
-            error={!!form.errors.email && form.touched.email}
-            style={styles.input}
-            editable={!form.isSubmitting}
-          />
-          {form.errors.email && form.touched.email && (
-            <Text style={styles.errorText}>{form.errors.email}</Text>
+        <Animated.View entering={FadeInDown.delay(150).duration(600)} style={styles.formCard}>
+          <View style={styles.field}>
+            <Text style={styles.label}>Correo electrónico</Text>
+            <View style={styles.inputWrapper}>
+              <MaterialIcons name="mail-outline" size={22} color={DS.colors.subtle} />
+              <TextInput
+                style={styles.input}
+                placeholder="ejemplo@correo.com"
+                placeholderTextColor={DS.colors.subtle}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
+                editable={!loading}
+              />
+            </View>
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.label}>Contraseña</Text>
+            <View style={styles.inputWrapper}>
+              <MaterialIcons name="lock-outline" size={22} color={DS.colors.subtle} />
+              <TextInput
+                style={styles.input}
+                placeholder="••••••••"
+                placeholderTextColor={DS.colors.subtle}
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPassword}
+                editable={!loading}
+              />
+              <TouchableOpacity onPress={() => setShowPassword((v) => !v)} hitSlop={8}>
+                <MaterialIcons
+                  name={showPassword ? 'visibility-off' : 'visibility'}
+                  size={22}
+                  color={DS.colors.subtle}
+                />
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={styles.forgot}
+              onPress={() => Alert.alert('Recuperar contraseña', 'Esta función estará disponible pronto.')}
+            >
+              <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity style={styles.remember} onPress={() => setRemember((v) => !v)}>
+            <View style={[styles.checkbox, remember && styles.checkboxOn]}>
+              {remember && <MaterialIcons name="check" size={16} color="#fff" />}
+            </View>
+            <Text style={styles.rememberText}>Recordar mi sesión</Text>
+          </TouchableOpacity>
+
+          {error && (
+            <View style={styles.errorBox}>
+              <MaterialIcons name="error-outline" size={18} color={DS.colors.error} />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
           )}
 
-          <TextInput
-            mode="outlined"
-            label="Contraseña"
-            placeholder="••••••••"
-            secureTextEntry
-            value={form.values.password}
-            onChangeText={(text) => form.handleChange('password', text)}
-            onBlur={() => form.handleBlur('password')}
-            error={!!form.errors.password && form.touched.password}
-            style={styles.input}
-            editable={!form.isSubmitting}
-          />
-          {form.errors.password && form.touched.password && (
-            <Text style={styles.errorText}>{form.errors.password}</Text>
-          )}
-
-          {form.submitError && <Text style={styles.errorText}>{form.submitError}</Text>}
-
-          <Button
-            mode="contained"
-            onPress={form.handleSubmit}
+          <GradientButton
+            label={loading ? 'Iniciando sesión…' : 'Iniciar Sesión'}
+            onPress={handleLogin}
+            loading={loading}
+            icon="arrow-forward"
             style={styles.submitButton}
-            disabled={form.isSubmitting}
-            loading={form.isSubmitting}
-          >
-            {form.isSubmitting ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-          </Button>
+          />
 
           <View style={styles.linkContainer}>
             <Text style={styles.linkText}>¿No tienes cuenta? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Register')} disabled={form.isSubmitting}>
+            <TouchableOpacity onPress={() => navigation.navigate('Register')} disabled={loading}>
               <Text style={styles.linkButton}>Regístrate aquí</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -124,49 +154,120 @@ function LoginScreen({ navigation }: LoginScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: DS.colors.surface,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
+    padding: 24,
   },
   headerContainer: {
-    marginBottom: 40,
+    marginBottom: 28,
     alignItems: 'center',
   },
+  logoTile: {
+    width: 88,
+    height: 88,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    ...DS.shadows.lg,
+  },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#00A86B',
-    marginBottom: 8,
+    fontSize: 34,
+    fontFamily: DS.fonts.extrabold,
+    color: DS.colors.primary,
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    fontFamily: DS.fonts.medium,
+    color: DS.colors.muted,
   },
-  formContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+  formCard: {
+    backgroundColor: DS.colors.card,
+    borderRadius: DS.borderRadius.xl,
+    padding: 24,
+    ...DS.shadows.md,
+  },
+  field: {
+    marginBottom: 18,
+  },
+  label: {
+    fontSize: 16,
+    fontFamily: DS.fonts.semibold,
+    color: DS.colors.text,
+    marginBottom: 8,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: DS.colors.surfaceContainerLow,
+    borderRadius: DS.borderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: DS.colors.border,
+    paddingHorizontal: 14,
+    minHeight: 56,
   },
   input: {
-    marginBottom: 12,
+    flex: 1,
+    paddingVertical: 14,
+    fontSize: 18,
+    fontFamily: DS.fonts.regular,
+    color: DS.colors.text,
+  },
+  forgot: {
+    alignSelf: 'flex-end',
+    marginTop: 8,
+  },
+  forgotText: {
+    fontSize: 15,
+    fontFamily: DS.fonts.semibold,
+    color: DS.colors.primary,
+  },
+  remember: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 18,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: DS.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxOn: {
+    backgroundColor: DS.colors.primary,
+    borderColor: DS.colors.primary,
+  },
+  rememberText: {
+    fontSize: 16,
+    fontFamily: DS.fonts.medium,
+    color: DS.colors.muted,
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#ffdad6',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
   },
   errorText: {
-    color: '#d32f2f',
-    fontSize: 12,
-    marginTop: -8,
-    marginBottom: 12,
+    flex: 1,
+    fontSize: 15,
+    fontFamily: DS.fonts.medium,
+    color: '#93000a',
   },
   submitButton: {
-    marginTop: 20,
-    paddingVertical: 8,
+    marginTop: 4,
   },
   linkContainer: {
     flexDirection: 'row',
@@ -174,13 +275,14 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   linkText: {
-    color: '#666',
-    fontSize: 14,
+    color: DS.colors.muted,
+    fontSize: 16,
+    fontFamily: DS.fonts.regular,
   },
   linkButton: {
-    color: '#00A86B',
-    fontSize: 14,
-    fontWeight: '600',
+    color: DS.colors.primary,
+    fontSize: 16,
+    fontFamily: DS.fonts.bold,
   },
 });
 

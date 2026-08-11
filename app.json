@@ -18,13 +18,51 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "com.myvita.app",
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "com.android.alarm.permission.SET_ALARM",
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-secure-store",
+      "@react-native-community/datetimepicker",
+      "expo-font",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "MyVita necesita acceder a tus contactos para elegir a quién avisar en una emergencia."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "MyVita usa tu ubicación para enviarla a tus contactos en una emergencia."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#0288d1",
+          "defaultChannel": "myvita-alarmas"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220,
+          "backgroundColor": "#f0f4f8",
+          "dark": {
+            "backgroundColor": "#0f172a"
+          }
+        }
+      ]
     ]
   }
 }

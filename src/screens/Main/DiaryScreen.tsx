@@ -1,84 +1,215 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, TextInput, ScrollView } from 'react-native';
-import { Button } from 'react-native-paper';
+import React, { useState, useCallback, useEffect } from 'react';
+import {
+  View,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
+  Alert,
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useSaveDiary } from '../../hooks/useApi';
 import { useSelector } from 'react-redux';
+import databaseService from '../../services/database';
+import { useDarkMode } from '../../hooks/useDarkMode';
+import { GradientButton } from '../../components/ui/GradientButton';
+import { DesignSystem as DS } from '../../theme/designSystem';
 import { RootState } from '../../types';
 import dayjs from 'dayjs';
 
+const MOODS = [
+  { value: 'muy_mal', emoji: '😢', label: 'Muy mal' },
+  { value: 'mal', emoji: '😞', label: 'Mal' },
+  { value: 'normal', emoji: '😐', label: 'Regular' },
+  { value: 'bien', emoji: '🙂', label: 'Bien' },
+  { value: 'muy_bien', emoji: '😄', label: 'Genial' },
+];
+
+function etiquetaFecha(fecha: string): string {
+  const d = dayjs(fecha);
+  const hoy = dayjs();
+  if (d.isSame(hoy, 'day')) return 'Hoy';
+  if (d.isSame(hoy.subtract(1, 'day'), 'day')) return 'Ayer';
+  return d.format('dddd');
+}
+
 function DiaryScreen() {
   const currentUser = useSelector((state: RootState) => state.user.currentUser);
-  const { save, loading } = useSaveDiary();
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [mood, setMood] = useState<'muy_bien' | 'bien' | 'normal' | 'mal' | 'muy_mal' | null>(null);
+  const userId = currentUser?.id || '';
+  const { isDark } = useDarkMode();
+  const [sintomas, setSintomas] = useState('');
+  const [contenido, setContenido] = useState('');
+  const [mood, setMood] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [entradas, setEntradas] = useState<any[]>([]);
 
-  const handleSave = async () => {
-    if (!title.trim() || !content.trim()) {
-      alert('Por favor completa el título y contenido');
+  const bg = isDark ? DS.colors.surfaceDark : DS.colors.surface;
+  const cardBg = isDark ? DS.colors.cardDark : DS.colors.card;
+  const fieldBg = isDark ? DS.colors.surfaceContainerDark : DS.colors.surfaceContainerLow;
+  const textColor = isDark ? DS.colors.textDark : DS.colors.text;
+  const mutedColor = isDark ? DS.colors.mutedDark : DS.colors.muted;
+  const borderColor = isDark ? DS.colors.borderDark : DS.colors.border;
+
+  const cargarEntradas = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const rows = await databaseService.getDiarioReciente(userId, 10);
+      setEntradas(rows);
+    } catch (e) {
+      console.warn('Error cargando diario:', e);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    cargarEntradas();
+  }, [cargarEntradas]);
+
+  const handleSave = useCallback(async () => {
+    if (!contenido.trim() && !sintomas.trim()) {
+      Alert.alert('Entrada vacía', 'Escribe cómo te sientes o tus síntomas');
       return;
     }
-
+    setSaving(true);
     try {
-      await save(currentUser?.id || '', dayjs().format('YYYY-MM-DD'), title, content, mood || undefined);
-      alert('Entrada guardada');
-      setTitle('');
-      setContent('');
+      const now = new Date().toISOString();
+      await databaseService.ejecutar(
+        `INSERT INTO diario_entradas (id, usuario_id, fecha, contenido, sintomas, emocion, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          `diario_${Date.now()}`,
+          userId,
+          dayjs().format('YYYY-MM-DD'),
+          contenido.trim() || null,
+          sintomas.trim() || null,
+          mood,
+          now,
+          now,
+        ],
+      );
+      setSintomas('');
+      setContenido('');
       setMood(null);
-    } catch (error) {
-      alert('Error al guardar');
+      await cargarEntradas();
+      Alert.alert('Guardado', 'Tu entrada del diario fue guardada ✅');
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo guardar la entrada.');
+    } finally {
+      setSaving(false);
     }
-  };
+  }, [contenido, sintomas, mood, userId, cargarEntradas]);
 
-  const moods = [
-    { value: 'muy_bien', emoji: '😄', label: 'Muy bien' },
-    { value: 'bien', emoji: '🙂', label: 'Bien' },
-    { value: 'normal', emoji: '😐', label: 'Normal' },
-    { value: 'mal', emoji: '😞', label: 'Mal' },
-    { value: 'muy_mal', emoji: '😢', label: 'Muy mal' },
-  ];
+  const emojiDe = (emocion: string | null) =>
+    MOODS.find((m) => m.value === emocion)?.emoji ?? '📝';
+  const labelDe = (emocion: string | null) =>
+    MOODS.find((m) => m.value === emocion)?.label ?? 'Nota';
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.date}>{dayjs().format('D [de] MMMM YYYY')}</Text>
+    <ScrollView
+      style={[styles.container, { backgroundColor: bg }]}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={[styles.screenTitle, { color: textColor }]}>Mi Diario</Text>
+      <Text style={[styles.screenSubtitle, { color: mutedColor }]}>
+        Registra cómo te sientes para llevar un mejor control de tu salud.
+      </Text>
 
-        <TextInput
-          style={styles.titleInput}
-          placeholder="Título de la entrada"
-          value={title}
-          onChangeText={setTitle}
-          editable={!loading}
-        />
-
-        <Text style={styles.label}>¿Cómo te sientes hoy?</Text>
-        <View style={styles.moodsContainer}>
-          {moods.map((m) => (
-            <TouchableOpacity
-              key={m.value}
-              style={[styles.moodButton, mood === m.value && styles.moodButtonActive]}
-              onPress={() => setMood(m.value as any)}
-            >
-              <Text style={styles.moodEmoji}>{m.emoji}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <TextInput
-          style={styles.contentInput}
-          placeholder="Escribe tus pensamientos y sentimientos..."
-          value={content}
-          onChangeText={setContent}
-          multiline
-          editable={!loading}
-          textAlignVertical="top"
-        />
-
-        <Button mode="contained" onPress={handleSave} loading={loading} style={styles.saveButton}>
-          Guardar Entrada
-        </Button>
+      {/* Estado de ánimo */}
+      <View style={[styles.card, { backgroundColor: cardBg }]}>
+        <Text style={[styles.cardTitle, { color: textColor }]}>¿Cómo te sientes hoy?</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.moodsRow}
+        >
+          {MOODS.map((m) => {
+            const active = mood === m.value;
+            return (
+              <TouchableOpacity
+                key={m.value}
+                style={[styles.moodButton, active && styles.moodButtonActive]}
+                onPress={() => setMood(m.value)}
+                accessibilityLabel={m.label}
+              >
+                <Text style={styles.moodEmoji}>{m.emoji}</Text>
+                <Text style={[styles.moodLabel, { color: active ? DS.colors.primary : mutedColor }]}>
+                  {m.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
+
+      {/* Síntomas */}
+      <Text style={[styles.sectionLabel, { color: textColor }]}>Síntomas</Text>
+      <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+        <MaterialIcons name="medical-services" size={22} color={DS.colors.subtle} />
+        <TextInput
+          style={[styles.input, { color: textColor }]}
+          placeholder="Dolor de cabeza, fatiga…"
+          placeholderTextColor={DS.colors.subtle}
+          value={sintomas}
+          onChangeText={setSintomas}
+          editable={!saving}
+        />
+      </View>
+
+      {/* Notas */}
+      <Text style={[styles.sectionLabel, { color: textColor }]}>Notas</Text>
+      <View style={[styles.textareaWrapper, { backgroundColor: cardBg, borderColor }]}>
+        <TextInput
+          style={[styles.textarea, { color: textColor }]}
+          placeholder="Escribe algo sobre tu día…"
+          placeholderTextColor={DS.colors.subtle}
+          value={contenido}
+          onChangeText={setContenido}
+          multiline
+          textAlignVertical="top"
+          editable={!saving}
+        />
+      </View>
+
+      <GradientButton
+        label={saving ? 'Guardando…' : 'Guardar'}
+        icon="save"
+        onPress={handleSave}
+        loading={saving}
+        style={styles.saveBtn}
+      />
+
+      {/* Entradas recientes */}
+      {entradas.length > 0 && (
+        <>
+          <View style={styles.recentHeader}>
+            <Text style={[styles.recentTitle, { color: textColor }]}>Entradas recientes</Text>
+          </View>
+          {entradas.map((e) => {
+            const accent =
+              e.emocion === 'muy_bien' || e.emocion === 'bien'
+                ? DS.colors.secondary
+                : e.emocion === 'normal'
+                  ? DS.colors.primary
+                  : DS.colors.warning;
+            return (
+              <View key={e.id} style={[styles.entryCard, { backgroundColor: cardBg }]}>
+                <View style={[styles.entryAccent, { backgroundColor: accent }]} />
+                <Text style={styles.entryEmoji}>{emojiDe(e.emocion)}</Text>
+                <View style={styles.entryInfo}>
+                  <Text style={[styles.entryDay, { color: mutedColor }]}>{etiquetaFecha(e.fecha)}</Text>
+                  <Text style={[styles.entryMood, { color: textColor }]} numberOfLines={1}>
+                    {labelDe(e.emocion)}
+                  </Text>
+                  <Text style={[styles.entryNote, { color: mutedColor }]} numberOfLines={1}>
+                    {e.sintomas || e.contenido || ''}
+                  </Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={24} color={DS.colors.subtle} />
+              </View>
+            );
+          })}
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -86,62 +217,144 @@ function DiaryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   content: {
     padding: 16,
+    paddingBottom: 32,
   },
-  date: {
-    fontSize: 12,
-    color: '#888',
+  screenTitle: {
+    fontSize: 28,
+    fontFamily: DS.fonts.extrabold,
+    marginBottom: 4,
+  },
+  screenSubtitle: {
+    fontSize: 16,
+    fontFamily: DS.fonts.regular,
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  card: {
+    borderRadius: DS.borderRadius.xl,
+    padding: 18,
+    marginBottom: 20,
+    ...DS.shadows.sm,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontFamily: DS.fonts.bold,
+    textAlign: 'center',
     marginBottom: 16,
   },
-  titleInput: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
-  },
-  moodsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 20,
+  moodsRow: {
+    gap: 8,
+    paddingHorizontal: 4,
   },
   moodButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
     alignItems: 'center',
+    gap: 6,
+    borderRadius: DS.borderRadius.lg,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     borderWidth: 2,
-    borderColor: '#eee',
+    borderColor: 'transparent',
+    minWidth: 72,
   },
   moodButtonActive: {
-    backgroundColor: '#00A86B',
-    borderColor: '#00A86B',
+    borderColor: DS.colors.primary,
+    backgroundColor: DS.statContainers.blue.bg,
   },
   moodEmoji: {
-    fontSize: 24,
+    fontSize: 38,
   },
-  contentInput: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 12,
-    minHeight: 200,
-    marginBottom: 16,
+  moodLabel: {
     fontSize: 14,
+    fontFamily: DS.fonts.semibold,
   },
-  saveButton: {
-    paddingVertical: 6,
+  sectionLabel: {
+    fontSize: 18,
+    fontFamily: DS.fonts.bold,
+    marginBottom: 8,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: DS.borderRadius.lg,
+    borderWidth: 1.5,
+    paddingHorizontal: 14,
+    minHeight: 56,
+    marginBottom: 18,
+    ...DS.shadows.sm,
+  },
+  input: {
+    flex: 1,
+    fontSize: 18,
+    fontFamily: DS.fonts.regular,
+    paddingVertical: 12,
+  },
+  textareaWrapper: {
+    borderRadius: DS.borderRadius.lg,
+    borderWidth: 1.5,
+    padding: 14,
+    marginBottom: 20,
+    minHeight: 120,
+    ...DS.shadows.sm,
+  },
+  textarea: {
+    fontSize: 18,
+    fontFamily: DS.fonts.regular,
+    minHeight: 92,
+  },
+  saveBtn: {
+    marginBottom: 24,
+  },
+  recentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  recentTitle: {
+    fontSize: 20,
+    fontFamily: DS.fonts.bold,
+  },
+  entryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: DS.borderRadius.lg,
+    padding: 14,
+    paddingLeft: 18,
+    marginBottom: 12,
+    gap: 12,
+    overflow: 'hidden',
+    ...DS.shadows.sm,
+  },
+  entryAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 6,
+  },
+  entryEmoji: {
+    fontSize: 30,
+  },
+  entryInfo: {
+    flex: 1,
+  },
+  entryDay: {
+    fontSize: 13,
+    fontFamily: DS.fonts.semibold,
+    textTransform: 'capitalize',
+  },
+  entryMood: {
+    fontSize: 17,
+    fontFamily: DS.fonts.bold,
+  },
+  entryNote: {
+    fontSize: 14,
+    fontFamily: DS.fonts.regular,
+    marginTop: 1,
   },
 });
 
