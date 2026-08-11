@@ -1,80 +1,109 @@
 // ================================================================
 // designSystem.ts — Sistema de diseño MyVita
-// "Premium Wellness" (Material 3) — rediseño accesible para mayores.
-// Azul profundo + verde vitalidad, tipografía grande (mín. 18px),
-// tiles de íconos en contenedores suaves, esquinas muy redondeadas.
+// Identidad "medical premium" oscura y futurista: fondo azul noche
+// #07111F, tarjetas #111C2B, degradado de marca azul eléctrico →
+// verde brillante, radios muy redondeados (18-24px), glow selectivo.
 // ================================================================
 
 import { TextStyle, ViewStyle } from 'react-native';
 
 export const DesignSystem = {
   colors: {
-    // Paleta principal Material 3
-    primary: '#006096', // azul profundo
-    primaryDark: '#004a75',
-    secondary: '#006e2a', // verde vitalidad
-    secondaryLight: '#3ce36a',
-    accent: '#007abc',
+    // Paleta principal de marca — azul rey + verde agua
+    primary: '#007BFF', // azul eléctrico
+    primaryDark: '#0056B3',
+    secondary: '#2BD84A', // verde brillante
+    secondaryLight: '#6EE884',
+    accent: '#38BDF8', // azul cielo
+    royalBlue: '#1E3FE0', // azul rey — base de tarjetas/botones "firma"
+    aquaGreen: '#2FE0C2', // verde agua/claro — cierre del gradiente "firma"
 
-    // Gradiente firma "Vitality" (azul → verde)
-    gradientStart: '#006096',
-    gradientEnd: '#006e2a',
+    // Gradiente firma "Vitality" (azul rey → verde agua)
+    gradientStart: '#1E3FE0',
+    gradientEnd: '#2FE0C2',
 
     // Estados
-    success: '#006e2a',
-    warning: '#8c4c00', // naranja terciario
-    error: '#ba1a1a',
-    danger: '#ba1a1a',
-    info: '#006096',
+    success: '#2BD84A',
+    warning: '#F59E0B',
+    error: '#E53935',
+    danger: '#E53935',
+    info: '#007BFF',
 
     // Superficies (claro)
-    surface: '#f8f9ff', // fondo base (blanco azulado)
-    surfaceContainerLow: '#eff4ff',
-    surfaceContainer: '#e5eeff',
-    surfaceContainerHigh: '#dce9ff',
+    surface: '#F5F8FF', // fondo base (blanco azulado)
+    surfaceContainerLow: '#EAF1FE',
+    surfaceContainer: '#DCEAFE',
+    surfaceContainerHigh: '#CFE2FD',
     card: '#ffffff',
-    text: '#0b1c30', // navy profundo
-    muted: '#3f4851',
-    subtle: '#707882', // outline
-    border: '#bfc7d2', // outline-variant
+    text: '#0B1526', // navy profundo
+    muted: '#48566B',
+    subtle: '#7A8AA0', // outline
+    border: '#D7E1EF', // outline-variant
 
-    // Superficies (oscuro)
-    surfaceDark: '#0f172a',
-    surfaceContainerDark: '#1b2536',
-    cardDark: '#1e293b',
-    textDark: '#eaf1ff',
-    mutedDark: '#aeb6c2',
-    borderDark: '#3a4350',
+    // Superficies (oscuro) — dark UI premium, tipo app médica
+    surfaceDark: '#07111F',
+    surfaceContainerDark: '#0C1826',
+    cardDark: '#111C2B',
+    textDark: '#F2F6FF',
+    mutedDark: '#8A9AB5',
+    borderDark: 'rgba(255,255,255,0.08)',
 
     gray: {
-      50: '#f8f9ff',
-      100: '#eff4ff',
-      200: '#dce9ff',
-      300: '#bfc7d2',
-      400: '#909aa6',
-      500: '#707882',
-      600: '#4b5563',
-      700: '#3f4851',
-      800: '#213145',
-      900: '#0b1c30',
+      50: '#F5F8FF',
+      100: '#EAF1FE',
+      200: '#DCEAFE',
+      300: '#D7E1EF',
+      400: '#9AAAC2',
+      500: '#7A8AA0',
+      600: '#48566B',
+      700: '#334156',
+      800: '#1B2740',
+      900: '#0B1526',
     },
   },
 
   // Tiles de íconos: contenedor suave + color fuerte del ícono
   statContainers: {
-    blue: { bg: '#dce9ff', fg: '#006096' },
-    green: { bg: '#c6f6d5', fg: '#006e2a' },
-    orange: { bg: '#ffdcc2', fg: '#8c4c00' },
-    red: { bg: '#ffdad6', fg: '#ba1a1a' },
+    blue: { bg: '#DCEEFF', fg: '#007BFF' },
+    green: { bg: '#D9FBE3', fg: '#1FAE4A' },
+    orange: { bg: '#FEEBD0', fg: '#F59E0B' },
+    red: { bg: '#FBDEDC', fg: '#E53935' },
+  },
+
+  // Fondo de las tarjetas de estadística (StatCard): degradado casi negro → color,
+  // muy sutil — solo un tinte, no un color plano.
+  statCardBg: {
+    blue: ['#05070C', '#0A1F3D'] as [string, string],
+    green: ['#050906', '#0A2A17'] as [string, string],
+    orange: ['#0A0805', '#2E1B08'] as [string, string],
+    red: ['#0A0505', '#2E0A0A'] as [string, string],
   },
 
   // Gradientes (cápsula firma + acentos)
   statGradients: {
-    adherence: ['#006e2a', '#3ce36a'] as [string, string],
-    active: ['#006096', '#007abc'] as [string, string],
-    pending: ['#8c4c00', '#b06000'] as [string, string],
-    streak: ['#ba1a1a', '#ff5449'] as [string, string],
-    signature: ['#006096', '#006e2a'] as [string, string],
+    adherence: ['#2BD84A', '#6EE884'] as [string, string],
+    active: ['#007BFF', '#4FA8FF'] as [string, string],
+    pending: ['#F59E0B', '#FBBF24'] as [string, string],
+    streak: ['#E53935', '#FF6B5E'] as [string, string],
+    // Gradiente "firma": azul rey → verde agua — todas las tarjetas/botones principales
+    signature: ['#1E3FE0', '#2FE0C2'] as [string, string],
+    brand3: ['#2FE0C2', '#38BDF8', '#1E3FE0'] as [string, string, string],
+    sos: ['#FF3B30', '#D32F2F'] as [string, string],
+    sosDisabled: ['#9CA3AF', '#6B7280'] as [string, string],
+    // Fondo general de pantalla en modo oscuro: azul noche → verde oscuro
+    appBackground: ['#050B14', '#03170F'] as [string, string],
+  },
+
+  // Gradientes propios de cada apartado (tiles, encabezados, FAB, botones de esa sección)
+  sectionGradients: {
+    medicinas: ['#F97316', '#0EA5E9'] as [string, string], // naranja → azul
+    alarmas: ['#F97316', '#FACC15'] as [string, string], // naranja → amarillo
+    chat: ['#0A1E3F', '#00C2FF'] as [string, string], // azul subido → azul eléctrico
+    sos: ['#F97316', '#DC2626'] as [string, string], // naranja → rojo
+    diario: ['#1E3FE0', '#2FE0C2'] as [string, string], // igual que el principal
+    mapa: ['#F97316', '#FACC15'] as [string, string], // naranja → amarillo
+    cuidador: ['#0F6FE0', '#0F6FE0'] as [string, string], // azul sólido
+    configuracion: ['#0F3D91', '#64748B'] as [string, string], // azul → gris
   },
 
   // Tipografía accesible — Poppins, body nunca por debajo de 18px
@@ -116,37 +145,59 @@ export const DesignSystem = {
     xxl: 48,
   },
 
-  // Esquinas redondeadas (tarjetas 24, botones/inputs 16, tiles 12)
+  // Esquinas muy redondeadas (18-24px en tarjetas, píldora en botones)
   borderRadius: {
-    sm: 8,
-    md: 12,
-    lg: 16,
-    xl: 24,
+    sm: 10,
+    md: 14,
+    lg: 18,
+    xl: 22,
+    xxl: 24,
     full: 9999,
   },
 
-  // Sombras ambientales con tinte azul
+  // Sombras suaves (nunca negras) + glow selectivo (SOS, botones, indicadores, robot IA)
   shadows: {
     sm: {
-      shadowColor: '#006096',
+      shadowColor: '#007BFF',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.08,
       shadowRadius: 12,
       elevation: 2,
     } as ViewStyle,
     md: {
-      shadowColor: '#006096',
+      shadowColor: '#007BFF',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.12,
       shadowRadius: 18,
       elevation: 4,
     } as ViewStyle,
     lg: {
-      shadowColor: '#006096',
+      shadowColor: '#007BFF',
       shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.22,
+      shadowOpacity: 0.2,
       shadowRadius: 28,
       elevation: 9,
+    } as ViewStyle,
+    glow: {
+      shadowColor: '#FF3B30',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.45,
+      shadowRadius: 24,
+      elevation: 10,
+    } as ViewStyle,
+    glowBlue: {
+      shadowColor: '#007BFF',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.5,
+      shadowRadius: 20,
+      elevation: 10,
+    } as ViewStyle,
+    glowGreen: {
+      shadowColor: '#2BD84A',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.5,
+      shadowRadius: 20,
+      elevation: 10,
     } as ViewStyle,
   },
 

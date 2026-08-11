@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -20,6 +20,8 @@ interface AdherenceRingProps {
   onGradient?: boolean;
   /** Etiqueta pequeña bajo el porcentaje (ej. "META") */
   sublabel?: string;
+  /** Ajusta el track/texto para verse bien sobre fondo oscuro (sin gradiente) */
+  isDark?: boolean;
 }
 
 export function AdherenceRing({
@@ -28,10 +30,12 @@ export function AdherenceRing({
   strokeWidth = 12,
   onGradient = false,
   sublabel,
+  isDark = false,
 }: AdherenceRingProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const animated = useSharedValue(0);
+  const gradientId = 'adherenceRingGradient';
 
   useEffect(() => {
     animated.value = withTiming(Math.min(100, Math.max(0, progress)), {
@@ -44,13 +48,29 @@ export function AdherenceRing({
     strokeDashoffset: circumference * (1 - animated.value / 100),
   }));
 
-  const trackColor = onGradient ? 'rgba(255,255,255,0.25)' : 'rgba(2,136,209,0.12)';
-  const ringColor = onGradient ? '#ffffff' : DesignSystem.colors.secondary;
-  const textColor = onGradient ? '#ffffff' : DesignSystem.colors.text;
+  const trackColor = onGradient
+    ? 'rgba(255,255,255,0.25)'
+    : isDark
+      ? 'rgba(242,246,255,0.12)'
+      : 'rgba(0,123,255,0.12)';
+  const ringColor = onGradient ? '#ffffff' : `url(#${gradientId})`;
+  const textColor = onGradient ? '#ffffff' : isDark ? DesignSystem.colors.textDark : DesignSystem.colors.text;
 
   return (
-    <View style={[styles.container, { width: size, height: size }]}>
+    <View
+      style={[
+        styles.container,
+        { width: size, height: size },
+        !onGradient && DesignSystem.shadows.glowBlue,
+      ]}
+    >
       <Svg width={size} height={size}>
+        <Defs>
+          <SvgLinearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor={DesignSystem.statGradients.signature[0]} />
+            <Stop offset="100%" stopColor={DesignSystem.statGradients.signature[1]} />
+          </SvgLinearGradient>
+        </Defs>
         <Circle
           cx={size / 2}
           cy={size / 2}

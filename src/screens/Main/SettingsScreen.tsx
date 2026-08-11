@@ -17,6 +17,7 @@ import { useDarkMode } from '../../hooks/useDarkMode';
 import authService from '../../services/authService';
 import notificationService from '../../services/notificationService';
 import { GradientButton } from '../../components/ui/GradientButton';
+import { ScreenBackground } from '../../components/ui/ScreenBackground';
 import { DesignSystem as DS } from '../../theme/designSystem';
 import { RootState, ThemeMode } from '../../types';
 import Constants from 'expo-constants';
@@ -74,7 +75,6 @@ function SettingsScreen({ navigation }: any) {
     });
   }, []);
 
-  const bg = isDark ? DS.colors.surfaceDark : DS.colors.surface;
   const cardBg = isDark ? DS.colors.cardDark : DS.colors.card;
   const textColor = isDark ? DS.colors.textDark : DS.colors.text;
 
@@ -100,9 +100,10 @@ function SettingsScreen({ navigation }: any) {
   const proximamente = () => Alert.alert('Próximamente', 'Esta función estará disponible pronto.');
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: bg }]} showsVerticalScrollIndicator={false}>
-      {/* Perfil con gradiente */}
-      <LinearGradient colors={DS.statGradients.signature} style={styles.profileCard}>
+    <ScreenBackground isDark={isDark}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Perfil con gradiente azul → gris */}
+      <LinearGradient colors={DS.sectionGradients.configuracion} style={styles.profileCard}>
         <View style={styles.profileAvatar}>
           <MaterialIcons name="person" size={36} color={DS.colors.primary} />
         </View>
@@ -256,6 +257,7 @@ function SettingsScreen({ navigation }: any) {
         </View>
       </Modal>
     </ScrollView>
+    </ScreenBackground>
   );
 }
 
@@ -347,8 +349,8 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: DS.colors.error,
     marginHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: DS.borderRadius.lg,
+    paddingVertical: 15,
+    borderRadius: DS.borderRadius.full,
     ...DS.shadows.sm,
   },
   logoutButtonText: {
@@ -357,7 +359,7 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   spacing: {
-    height: 36,
+    height: 120,
   },
   themeSelector: {
     paddingHorizontal: 14,

@@ -17,9 +17,11 @@ interface GradientButtonProps {
   loading?: boolean;
   style?: ViewStyle;
   icon?: keyof typeof MaterialIcons.glyphMap;
+  /** Gradiente propio de la sección (por defecto, el gradiente "firma") */
+  gradientColors?: readonly [string, string];
 }
 
-export function GradientButton({ label, onPress, disabled, loading, style, icon }: GradientButtonProps) {
+export function GradientButton({ label, onPress, disabled, loading, style, icon, gradientColors }: GradientButtonProps) {
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -50,7 +52,7 @@ export function GradientButton({ label, onPress, disabled, loading, style, icon 
           colors={
             disabled
               ? [DesignSystem.colors.gray[300], DesignSystem.colors.gray[400]]
-              : DesignSystem.statGradients.signature
+              : gradientColors ?? DesignSystem.statGradients.signature
           }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -72,12 +74,14 @@ export function GradientButton({ label, onPress, disabled, loading, style, icon 
 
 const styles = StyleSheet.create({
   gradient: {
-    borderRadius: DesignSystem.borderRadius.lg,
-    paddingVertical: 17,
+    borderRadius: DesignSystem.borderRadius.full,
+    paddingVertical: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 56,
-    ...DesignSystem.shadows.md,
+    minHeight: 62,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.35)',
+    ...DesignSystem.shadows.glowBlue,
   },
   row: {
     flexDirection: 'row',
@@ -86,7 +90,8 @@ const styles = StyleSheet.create({
   },
   label: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 19,
+    letterSpacing: 0.3,
     fontFamily: DesignSystem.fonts.bold,
   },
 });
