@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   spacing: {
-    height: 120,
+    height: 150,
   },
   themeSelector: {
     paddingHorizontal: 14,

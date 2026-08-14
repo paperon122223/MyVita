@@ -42,6 +42,8 @@ export function StatCard({ icon, image, label, value, variant, dark, horizontal 
             <MaterialIcons name={icon} size={20} color={tile.fg} />
           )}
         </View>
+        {/* Sin mini-gráfica en la fila compacta: es decorativa y el ancho
+            que ocupaba hacía que se recortaran etiquetas como "Adherencia". */}
         <View style={styles.rowText}>
           <Text style={[styles.labelSm, dark && styles.labelDark]} numberOfLines={1}>
             {label}
@@ -49,17 +51,6 @@ export function StatCard({ icon, image, label, value, variant, dark, horizontal 
           <Text style={[styles.valueSm, { color: tile.fg }]} numberOfLines={1}>
             {value}
           </Text>
-        </View>
-        <View style={styles.sparkRowSm}>
-          {SPARK_PATTERN.map((h, i) => (
-            <View
-              key={i}
-              style={[
-                styles.sparkBarSm,
-                { height: h * 0.7, backgroundColor: tile.fg, opacity: 0.3 + (i / SPARK_PATTERN.length) * 0.6 },
-              ]}
-            />
-          ))}
         </View>
       </>
     );

@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, StyleSheet, Image, TouchableOpacity, Alert } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import authService from '../services/authService';
 import databaseService from '../services/database';
 import apiService from '../services/apiService';
-import { CLOUD_BACKEND_ENABLED } from '../utils/constants';
 import { useDarkMode } from '../hooks/useDarkMode';
+import DesignSystem from '../theme/designSystem';
 import { loginSuccess, logout } from '../redux/slices/userSlice';
+import { CLOUD_BACKEND_ENABLED } from '../utils/constants';
+import { TAB_BAR_GAP, TAB_BAR_HEIGHT } from '../utils/layout';
 import { RootState } from '../types';
 
 // Types
@@ -33,62 +36,68 @@ import DiaryScreen from '../screens/Main/DiaryScreen';
 import SOSScreen from '../screens/Main/SOSScreen';
 import MapaScreen from '../screens/Main/MapaScreen';
 import CuidadorScreen from '../screens/Main/CuidadorScreen';
-import SettingsScreen from '../screens/Main/SettingsScreen';
 import MoreScreen from '../screens/Main/MoreScreen';
+import HistorialScreen from '../screens/Main/HistorialScreen';
+import SettingsScreen from '../screens/Main/SettingsScreen';
 import PrivacyScreen from '../screens/Main/PrivacyScreen';
 import TermsScreen from '../screens/Main/TermsScreen';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
-const Tab = createBottomTabNavigator<MainTabParamList>();
 const MoreStack = createNativeStackNavigator<MoreStackParamList>();
+const Tab = createBottomTabNavigator<MainTabParamList>();
 
 type TabIconName = keyof typeof MaterialIcons.glyphMap;
 
 const TAB_ICONS: Record<string, TabIconName> = {
   DashboardTab: 'home',
   MedicationsTab: 'medication',
-  AlarmsTab: 'alarm',
   SOSTab: 'sos',
+  AlarmsTab: 'alarm',
+  ChatTab: 'chat',
   MoreTab: 'apps',
 };
 
 const TAB_LABELS: Record<string, string> = {
   DashboardTab: 'Inicio',
   MedicationsTab: 'Medicinas',
-  AlarmsTab: 'Alarmas',
   SOSTab: 'SOS',
+  AlarmsTab: 'Alarmas',
+  ChatTab: 'Chat',
   MoreTab: 'Más',
 };
 
 const TAB_TITLES: Record<string, string> = {
   DashboardTab: 'Panel de Control',
   MedicationsTab: 'Medicinas',
-  AlarmsTab: 'Alarmas',
   SOSTab: 'Emergencia',
+  AlarmsTab: 'Alarmas',
+  ChatTab: 'Asistente IA',
   MoreTab: 'Más herramientas',
 };
 
-function MoreNavigator() {
-  const { isDark } = useDarkMode();
+// Botón flotante circular para el tab de SOS (destaca en el centro de la barra)
+function SOSTabButton({ onPress, accessibilityState, isDark }: any) {
+  const focused = !!accessibilityState?.selected;
   return (
-    <MoreStack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: isDark ? '#1e293b' : '#ffffff' },
-        headerTintColor: isDark ? '#96ccff' : '#006096',
-        headerTitleStyle: { fontFamily: 'Poppins_800ExtraBold', fontSize: 19 },
-        headerShadowVisible: false,
-      }}
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.85}
+      style={styles.sosTabWrap}
+      accessibilityRole="button"
+      accessibilityLabel="Emergencia SOS"
     >
-      <MoreStack.Screen name="MoreMenu" component={MoreScreen} options={{ title: 'Más herramientas' }} />
-      <MoreStack.Screen name="Chat" component={ChatScreen} options={{ title: 'Asistente IA' }} />
-      <MoreStack.Screen name="Diary" component={DiaryScreen} options={{ title: 'Diario' }} />
-      <MoreStack.Screen name="Mapa" component={MapaScreen} options={{ title: 'Mi ubicación' }} />
-      <MoreStack.Screen name="Cuidador" component={CuidadorScreen} options={{ title: 'Modo cuidador' }} />
-      <MoreStack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Configuración' }} />
-      <MoreStack.Screen name="Privacy" component={PrivacyScreen} options={{ title: 'Aviso de privacidad' }} />
-      <MoreStack.Screen name="Terms" component={TermsScreen} options={{ title: 'Términos de uso' }} />
-    </MoreStack.Navigator>
+      <LinearGradient
+        colors={DesignSystem.sectionGradients.sos}
+        style={[
+          styles.sosTabCircle,
+          { borderColor: isDark ? DesignSystem.colors.surfaceContainerDark : DesignSystem.colors.card },
+          focused && styles.sosTabCircleFocused,
+        ]}
+      >
+        <MaterialIcons name="sos" size={24} color="#fff" />
+      </LinearGradient>
+    </TouchableOpacity>
   );
 }
 
@@ -102,11 +111,68 @@ function AuthNavigator() {
   );
 }
 
-// Main Tab Navigator (5 accesos principales)
+// Pestaña "Más": menú + herramientas secundarias y pantallas legales.
+// Agrupa lo que antes ocupaba pestañas propias, para que la barra inferior
+// mantenga zonas táctiles grandes (app orientada a adultos mayores).
+function MoreNavigator() {
+  const { isDark } = useDarkMode();
+
+  return (
+    <MoreStack.Navigator
+      // El encabezado lo controla este stack (la pestaña lo oculta), para que
+      // las subpantallas tengan flecha de regreso y no salgan dos encabezados.
+      screenOptions={{
+        headerStyle: { backgroundColor: isDark ? '#0A1730' : '#FFFFFF' },
+        headerTintColor: isDark ? '#fff' : DesignSystem.colors.text,
+        headerTitleStyle: {
+          fontFamily: 'Poppins_800ExtraBold',
+          fontSize: 20,
+        },
+      }}
+    >
+      <MoreStack.Screen
+        name="MoreMenu"
+        component={MoreScreen}
+        options={{ title: 'Más herramientas' }}
+      />
+      <MoreStack.Screen
+        name="Historial"
+        component={HistorialScreen}
+        options={{ title: 'Historial de tomas' }}
+      />
+      <MoreStack.Screen name="Diary" component={DiaryScreen} options={{ title: 'Diario' }} />
+      <MoreStack.Screen name="Mapa" component={MapaScreen} options={{ title: 'Mi ubicación' }} />
+      <MoreStack.Screen
+        name="Cuidador"
+        component={CuidadorScreen}
+        options={{ title: 'Cuidadores' }}
+      />
+      <MoreStack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ title: 'Configuración' }}
+      />
+      <MoreStack.Screen
+        name="Privacy"
+        component={PrivacyScreen}
+        options={{ title: 'Aviso de privacidad' }}
+      />
+      <MoreStack.Screen
+        name="Terms"
+        component={TermsScreen}
+        options={{ title: 'Términos de uso' }}
+      />
+    </MoreStack.Navigator>
+  );
+}
+
+// Main Tab Navigator (9 tabs)
 function MainTabNavigator() {
   const { isDark } = useDarkMode();
   const insets = useSafeAreaInsets();
-  const bottomInset = Math.max(insets.bottom, 8);
+  // La barra flota por encima de la navegación del sistema (gestos o botones):
+  // se respeta el inset y se añade holgura para que no se encimen.
+  const bottomInset = Math.max(insets.bottom, 8) + TAB_BAR_GAP;
 
   return (
     <Tab.Navigator
@@ -115,68 +181,136 @@ function MainTabNavigator() {
         animation: 'shift',
         tabBarIcon: ({ focused }) => {
           const iconName = TAB_ICONS[route.name] ?? 'circle';
-          // SOS: píldora roja; resto: píldora verde
           const isSOSTab = route.name === 'SOSTab';
+          if (isSOSTab) return null;
+          const iconSize = 26;
+          if (focused) {
+            return (
+              <View style={styles.tabPillActive}>
+                <MaterialIcons name={iconName} size={iconSize} color={DesignSystem.colors.primary} />
+              </View>
+            );
+          }
           return (
-            <View
-              style={[
-                styles.tabPill,
-                focused && (isSOSTab ? styles.tabPillSOS : styles.tabPillActive),
-              ]}
-            >
-              <MaterialIcons
-                name={iconName}
-                size={22}
-                color={
-                  focused
-                    ? isSOSTab
-                      ? '#ba1a1a'
-                      : '#006e2a'
-                    : isDark
-                      ? '#aeb6c2'
-                      : '#707882'
-                }
-              />
+            <View style={styles.tabPillInactive}>
+              <MaterialIcons name={iconName} size={iconSize} color="rgba(255,255,255,0.55)" />
             </View>
           );
         },
-        tabBarActiveTintColor: '#006e2a',
-        tabBarInactiveTintColor: isDark ? '#aeb6c2' : '#707882',
+        tabBarActiveTintColor: '#ffffff',
+        tabBarInactiveTintColor: 'rgba(255,255,255,0.5)',
+        tabBarBackground: () => (
+          <LinearGradient
+            colors={DesignSystem.statGradients.signature}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.tabBarGradient}
+          />
+        ),
         tabBarStyle: {
-          backgroundColor: isDark ? '#1b2536' : '#ffffff',
+          position: 'absolute',
+          left: 8,
+          right: 8,
+          bottom: bottomInset,
+          height: TAB_BAR_HEIGHT,
+          borderRadius: DesignSystem.borderRadius.full,
+          backgroundColor: 'transparent',
           borderTopWidth: 0,
-          elevation: 12,
-          shadowColor: '#006096',
-          shadowOpacity: 0.12,
-          shadowRadius: 16,
-          height: 64 + bottomInset,
-          paddingTop: 4,
-          paddingBottom: bottomInset,
+          paddingTop: 8,
+          paddingBottom: 8,
+          ...DesignSystem.shadows.lg,
         },
-        tabBarItemStyle: { paddingVertical: 1 },
+        tabBarItemStyle: { paddingVertical: 0, paddingHorizontal: 0 },
+        // En 360dp de ancho quedan ~64dp por pestaña (el SOS ocupa menos):
+        // a 10px "Medicinas" —la etiqueta más larga— entra sin recortarse.
+        // El ícono (26px) es la señal principal, así que el texto puede ser
+        // pequeño sin perder claridad.
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 10,
           fontFamily: 'Poppins_600SemiBold',
         },
         tabBarLabel: TAB_LABELS[route.name] ?? '',
+        headerBackground: () => (
+          <View style={{ flex: 1, backgroundColor: isDark ? '#0A1730' : '#FFFFFF' }} />
+        ),
         headerStyle: {
-          backgroundColor: isDark ? '#1e293b' : '#ffffff',
-          elevation: 0,
-          shadowOpacity: 0,
+          height: 104,
+          elevation: 8,
+          shadowOpacity: 0.15,
         },
+        headerTintColor: isDark ? '#fff' : DesignSystem.colors.text,
         headerTitleStyle: {
           fontFamily: 'Poppins_800ExtraBold',
           fontSize: 20,
-          color: isDark ? '#96ccff' : '#006096',
+          color: isDark ? '#fff' : DesignSystem.colors.text,
         },
         title: TAB_TITLES[route.name] ?? '',
       })}
     >
-      <Tab.Screen name="DashboardTab" component={DashboardScreen} />
+      <Tab.Screen
+        name="DashboardTab"
+        component={DashboardScreen}
+        options={{
+          headerTitle: () => (
+            <Image
+              source={
+                isDark
+                  ? require('../../assets/images/myvita-logo-horizontal-light.png')
+                  : require('../../assets/images/myvita-logo-horizontal.png')
+              }
+              style={styles.headerLogo}
+              resizeMode="contain"
+            />
+          ),
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() =>
+                Alert.alert('Notificaciones', 'Próximamente podrás ver tus notificaciones aquí.')
+              }
+              style={styles.headerBell}
+              accessibilityLabel="Notificaciones"
+            >
+              <MaterialIcons
+                name="notifications-none"
+                size={32}
+                color={isDark ? '#fff' : DesignSystem.colors.text}
+              />
+              <View
+                style={[
+                  styles.headerBellDot,
+                  { borderColor: isDark ? '#0A1730' : '#FFFFFF' },
+                ]}
+              />
+            </TouchableOpacity>
+          ),
+        }}
+      />
       <Tab.Screen name="MedicationsTab" component={MedicationsScreen} />
+      <Tab.Screen
+        name="SOSTab"
+        component={SOSScreen}
+        options={{
+          // El círculo del SOS flota; su espacio en la fila es más angosto
+          // para no robarle ancho a las etiquetas vecinas.
+          tabBarItemStyle: { flex: 0.35 },
+          tabBarButton: (props) => <SOSTabButton {...props} isDark={isDark} />,
+        }}
+      />
       <Tab.Screen name="AlarmsTab" component={AlarmsScreen} />
-      <Tab.Screen name="SOSTab" component={SOSScreen} />
-      <Tab.Screen name="MoreTab" component={MoreNavigator} options={{ headerShown: false }} />
+      <Tab.Screen name="ChatTab" component={ChatScreen} />
+      <Tab.Screen
+        name="MoreTab"
+        component={MoreNavigator}
+        options={{ headerShown: false }}
+        // Sin esto, la pestaña recuerda la última pantalla abierta (p. ej.
+        // Diario) y "Más" ya no llevaría al menú. Siempre volver al menú.
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.navigate('MoreTab', { screen: 'MoreMenu' });
+          },
+        })}
+      />
     </Tab.Navigator>
   );
 }
@@ -190,8 +324,22 @@ function RootNavigator() {
   const [isLoading, setIsLoading] = useState(true);
 
   const navTheme = isDark
-    ? { ...DarkTheme, colors: { ...DarkTheme.colors, background: '#0f172a', card: '#1e293b' } }
-    : { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: '#f0f4f8', card: '#ffffff' } };
+    ? {
+        ...DarkTheme,
+        colors: {
+          ...DarkTheme.colors,
+          background: DesignSystem.colors.surfaceDark,
+          card: DesignSystem.colors.cardDark,
+        },
+      }
+    : {
+        ...DefaultTheme,
+        colors: {
+          ...DefaultTheme.colors,
+          background: DesignSystem.colors.surface,
+          card: DesignSystem.colors.card,
+        },
+      };
 
   useEffect(() => {
     const bootstrapAsync = async () => {
@@ -252,7 +400,7 @@ function RootNavigator() {
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#0288d1" />
+        <ActivityIndicator size="large" color={DesignSystem.colors.primary} />
       </View>
     );
   }
@@ -271,18 +419,61 @@ function RootNavigator() {
 }
 
 const styles = StyleSheet.create({
-  tabPill: {
-    width: 44,
-    height: 28,
-    borderRadius: 14,
+  tabBarGradient: {
+    flex: 1,
+    borderRadius: DesignSystem.borderRadius.full,
+    overflow: 'hidden',
+  },
+  tabPillActive: {
+    width: 46,
+    height: 34,
+    borderRadius: DesignSystem.borderRadius.full,
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabPillActive: {
-    backgroundColor: '#c6f6d5',
+  tabPillInactive: {
+    width: 46,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  tabPillSOS: {
-    backgroundColor: '#ffdad6',
+  sosTabWrap: {
+    top: -22,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  sosTabCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    ...DesignSystem.shadows.glow,
+  },
+  sosTabCircleFocused: {
+    borderWidth: 4,
+  },
+  headerLogo: {
+    width: 190,
+    height: 88,
+  },
+  headerBell: {
+    marginRight: 16,
+    padding: 4,
+  },
+  headerBellDot: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: DesignSystem.colors.secondary,
+    borderWidth: 1.5,
+    borderColor: '#0A1730',
   },
 });
 

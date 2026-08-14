@@ -8,21 +8,24 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 import databaseService from '../../services/database';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { GradientButton } from '../../components/ui/GradientButton';
+import { ScreenBackground } from '../../components/ui/ScreenBackground';
+import { FloatingIcon } from '../../components/ui/FloatingIcon';
 import { DesignSystem as DS } from '../../theme/designSystem';
 import { RootState } from '../../types';
 import dayjs from 'dayjs';
 
 const MOODS = [
-  { value: 'muy_mal', emoji: '😢', label: 'Muy mal' },
-  { value: 'mal', emoji: '😞', label: 'Mal' },
-  { value: 'normal', emoji: '😐', label: 'Regular' },
-  { value: 'bien', emoji: '🙂', label: 'Bien' },
-  { value: 'muy_bien', emoji: '😄', label: 'Genial' },
+  { value: 'muy_mal', emoji: '😢', label: 'Muy mal', image: require('../../../assets/images/mood-muy-mal.png') },
+  { value: 'mal', emoji: '😞', label: 'Mal', image: require('../../../assets/images/mood-mal.png') },
+  { value: 'normal', emoji: '😐', label: 'Regular', image: require('../../../assets/images/mood-regular.png') },
+  { value: 'bien', emoji: '🙂', label: 'Bien', image: require('../../../assets/images/mood-bien.png') },
+  { value: 'muy_bien', emoji: '😄', label: 'Genial', image: require('../../../assets/images/mood-genial.png') },
 ];
 
 function etiquetaFecha(fecha: string): string {
@@ -43,7 +46,6 @@ function DiaryScreen() {
   const [saving, setSaving] = useState(false);
   const [entradas, setEntradas] = useState<any[]>([]);
 
-  const bg = isDark ? DS.colors.surfaceDark : DS.colors.surface;
   const cardBg = isDark ? DS.colors.cardDark : DS.colors.card;
   const fieldBg = isDark ? DS.colors.surfaceContainerDark : DS.colors.surfaceContainerLow;
   const textColor = isDark ? DS.colors.textDark : DS.colors.text;
@@ -104,25 +106,39 @@ function DiaryScreen() {
     MOODS.find((m) => m.value === emocion)?.label ?? 'Nota';
 
   return (
+    <ScreenBackground isDark={isDark}>
     <ScrollView
-      style={[styles.container, { backgroundColor: bg }]}
+      style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={[styles.screenTitle, { color: textColor }]}>Mi Diario</Text>
-      <Text style={[styles.screenSubtitle, { color: mutedColor }]}>
-        Registra cómo te sientes para llevar un mejor control de tu salud.
-      </Text>
+      <View style={styles.headerRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.screenTitle, { color: textColor }]}>Mi Diario</Text>
+          <Text style={[styles.screenSubtitle, { color: mutedColor }]}>
+            Registra cómo te sientes para llevar un mejor control de tu salud.
+          </Text>
+        </View>
+        <View style={[styles.dateBadge, { backgroundColor: cardBg, borderColor }]}>
+          <MaterialIcons name="calendar-today" size={14} color={DS.colors.primary} />
+          <Text style={[styles.dateBadgeText, { color: textColor }]}>
+            {dayjs().format('D MMM')}
+          </Text>
+        </View>
+      </View>
 
       {/* Estado de ánimo */}
-      <View style={[styles.card, { backgroundColor: cardBg }]}>
+      <LinearGradient
+        colors={isDark ? ['#0B1730', '#2A1608'] : [cardBg, cardBg]}
+        style={styles.card}
+      >
         <Text style={[styles.cardTitle, { color: textColor }]}>¿Cómo te sientes hoy?</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.moodsRow}
         >
-          {MOODS.map((m) => {
+          {MOODS.map((m, i) => {
             const active = mood === m.value;
             return (
               <TouchableOpacity
@@ -131,7 +147,7 @@ function DiaryScreen() {
                 onPress={() => setMood(m.value)}
                 accessibilityLabel={m.label}
               >
-                <Text style={styles.moodEmoji}>{m.emoji}</Text>
+                <FloatingIcon source={m.image} style={styles.moodImage} delay={i * 180} />
                 <Text style={[styles.moodLabel, { color: active ? DS.colors.primary : mutedColor }]}>
                   {m.label}
                 </Text>
@@ -139,7 +155,7 @@ function DiaryScreen() {
             );
           })}
         </ScrollView>
-      </View>
+      </LinearGradient>
 
       {/* Síntomas */}
       <Text style={[styles.sectionLabel, { color: textColor }]}>Síntomas</Text>
@@ -176,6 +192,7 @@ function DiaryScreen() {
         onPress={handleSave}
         loading={saving}
         style={styles.saveBtn}
+        gradientColors={['#FACC15', '#F97316']}
       />
 
       {/* Entradas recientes */}
@@ -211,6 +228,7 @@ function DiaryScreen() {
         </>
       )}
     </ScrollView>
+    </ScreenBackground>
   );
 }
 
@@ -220,7 +238,28 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 150,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  dateBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: DS.borderRadius.md,
+    borderWidth: 1,
+    marginTop: 2,
+  },
+  dateBadgeText: {
+    fontSize: 13,
+    fontFamily: DS.fonts.semibold,
+    textTransform: 'capitalize',
   },
   screenTitle: {
     fontSize: 28,
@@ -246,25 +285,28 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   moodsRow: {
-    gap: 8,
+    flexGrow: 1,
+    gap: 6,
     paddingHorizontal: 4,
+    justifyContent: 'center',
   },
   moodButton: {
     alignItems: 'center',
     gap: 6,
-    borderRadius: DS.borderRadius.lg,
+    borderRadius: DS.borderRadius.full,
     paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     borderWidth: 2,
     borderColor: 'transparent',
-    minWidth: 72,
+    minWidth: 98,
   },
   moodButtonActive: {
     borderColor: DS.colors.primary,
     backgroundColor: DS.statContainers.blue.bg,
   },
-  moodEmoji: {
-    fontSize: 38,
+  moodImage: {
+    width: 98,
+    height: 98,
   },
   moodLabel: {
     fontSize: 14,

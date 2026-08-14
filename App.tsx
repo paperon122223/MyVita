@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
-import { StatusBar, StyleSheet, View } from 'react-native';
+import { AppState, Platform, StatusBar, StyleSheet, View } from 'react-native';
+import * as NavigationBar from 'expo-navigation-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
 import { MD3DarkTheme, MD3LightTheme, PaperProvider } from 'react-native-paper';
@@ -60,6 +61,27 @@ function AppContent() {
     };
 
     initializeApp();
+  }, []);
+
+  // Pantalla completa: oculta la barra de navegación de Android (botones o
+  // gestos). Reaparece al deslizar desde el borde y se vuelve a ocultar sola,
+  // por eso hay que reaplicarlo cuando la app regresa a primer plano.
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+
+    const ocultarNavegacion = async () => {
+      try {
+        await NavigationBar.setVisibilityAsync('hidden');
+      } catch (error) {
+        console.warn('No se pudo ocultar la barra de navegación:', error);
+      }
+    };
+
+    ocultarNavegacion();
+    const subscription = AppState.addEventListener('change', (estado) => {
+      if (estado === 'active') ocultarNavegacion();
+    });
+    return () => subscription.remove();
   }, []);
 
   return (

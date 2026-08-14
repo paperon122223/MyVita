@@ -22,6 +22,7 @@ import { useAlarms } from '../../hooks/useAlarms';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { GradientButton } from '../../components/ui/GradientButton';
 import { AdherenceRing } from '../../components/ui/AdherenceRing';
+import { ScreenBackground } from '../../components/ui/ScreenBackground';
 import systemAlarmService from '../../services/systemAlarmService';
 import { DesignSystem as DS } from '../../theme/designSystem';
 import { RootState, Alarma, FrecuenciaAlarma } from '../../types';
@@ -324,7 +325,8 @@ function AlarmsScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: bg }]}>
+    <ScreenBackground isDark={isDark}>
+    <View style={styles.container}>
       <FlatList
         data={alarms}
         renderItem={renderAlarm}
@@ -333,7 +335,7 @@ function AlarmsScreen() {
         ListHeaderComponent={ProgressHeader}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <LinearGradient colors={DS.statGradients.signature} style={styles.emptyIcon}>
+            <LinearGradient colors={DS.sectionGradients.alarmas} style={styles.emptyIcon}>
               <MaterialIcons name="alarm-add" size={36} color="#fff" />
             </LinearGradient>
             <Text style={[styles.emptyTitle, { color: textColor }]}>Sin alarmas hoy</Text>
@@ -350,7 +352,7 @@ function AlarmsScreen() {
         onPress={() => setModalVisible(true)}
         accessibilityLabel="Crear nueva alarma"
       >
-        <LinearGradient colors={DS.statGradients.signature} style={styles.fabGradient}>
+        <LinearGradient colors={DS.sectionGradients.alarmas} style={styles.fabGradient}>
           <MaterialIcons name="add" size={26} color="#fff" />
           <Text style={styles.fabText}>Nueva Alarma</Text>
         </LinearGradient>
@@ -497,6 +499,7 @@ function AlarmsScreen() {
         </View>
       </Modal>
     </View>
+    </ScreenBackground>
   );
 }
 
@@ -511,7 +514,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    paddingBottom: 96,
+    paddingBottom: 150,
     flexGrow: 1,
   },
   progressCard: {

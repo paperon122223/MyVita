@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Text,
   TextInput,
+  Image,
   Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,18 +17,27 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useDispatch } from 'react-redux';
 import authService from '../../services/authService';
 import { GradientButton } from '../../components/ui/GradientButton';
+import { ScreenBackground } from '../../components/ui/ScreenBackground';
 import { isValidEmail } from '../../utils/validators';
 import { loginSuccess, loginFailure } from '../../redux/slices/userSlice';
+import { useDarkMode } from '../../hooks/useDarkMode';
 import { DesignSystem as DS } from '../../theme/designSystem';
 
 function LoginScreen({ navigation }: any) {
   const dispatch = useDispatch();
+  const { isDark } = useDarkMode();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // La tarjeta del formulario siempre lleva el degradado de marca — textos fijos en blanco.
+  const textColor = '#fff';
+  const mutedColor = 'rgba(255,255,255,0.75)';
+  const borderColor = 'rgba(255,255,255,0.35)';
+  const inputBg = 'rgba(255,255,255,0.15)';
 
   const handleLogin = async () => {
     setError(null);
@@ -54,31 +64,42 @@ function LoginScreen({ navigation }: any) {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.container}
-    >
+    <ScreenBackground isDark={isDark}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.container}
+      >
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Logo */}
+        {/* Logo grande arriba + ilustración grande abajo */}
         <Animated.View entering={FadeInUp.duration(600)} style={styles.headerContainer}>
-          <LinearGradient colors={DS.statGradients.signature} style={styles.logoTile}>
-            <MaterialIcons name="medication" size={44} color="#fff" />
-          </LinearGradient>
-          <Text style={styles.title}>
-            My<Text style={{ color: DS.colors.secondary }}>Vita</Text>
-          </Text>
-          <Text style={styles.subtitle}>Tu salud, siempre a tiempo</Text>
+          <Image
+            source={require('../../../assets/images/logo-myvita-register.png')}
+            style={styles.logoTop}
+            resizeMode="contain"
+          />
+          <Image
+            source={require('../../../assets/images/login-familia.png')}
+            style={styles.illustrationBig}
+            resizeMode="contain"
+          />
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(150).duration(600)} style={styles.formCard}>
+        <Animated.View entering={FadeInDown.delay(150).duration(600)}>
+        <LinearGradient
+          colors={DS.statGradients.signature}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.formCard}
+        >
+          <Text style={[styles.welcomeTitle, { color: textColor }]}>Bienvenido de nuevo</Text>
           <View style={styles.field}>
-            <Text style={styles.label}>Correo electrónico</Text>
-            <View style={styles.inputWrapper}>
-              <MaterialIcons name="mail-outline" size={22} color={DS.colors.subtle} />
+            <Text style={[styles.label, { color: textColor }]}>Correo electrónico</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: inputBg, borderColor }]}>
+              <MaterialIcons name="mail-outline" size={22} color={mutedColor} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: textColor }]}
                 placeholder="ejemplo@correo.com"
-                placeholderTextColor={DS.colors.subtle}
+                placeholderTextColor={mutedColor}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 value={email}
@@ -89,13 +110,13 @@ function LoginScreen({ navigation }: any) {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Contraseña</Text>
-            <View style={styles.inputWrapper}>
-              <MaterialIcons name="lock-outline" size={22} color={DS.colors.subtle} />
+            <Text style={[styles.label, { color: textColor }]}>Contraseña</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: inputBg, borderColor }]}>
+              <MaterialIcons name="lock-outline" size={22} color={mutedColor} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: textColor }]}
                 placeholder="••••••••"
-                placeholderTextColor={DS.colors.subtle}
+                placeholderTextColor={mutedColor}
                 secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPassword}
@@ -105,7 +126,7 @@ function LoginScreen({ navigation }: any) {
                 <MaterialIcons
                   name={showPassword ? 'visibility-off' : 'visibility'}
                   size={22}
-                  color={DS.colors.subtle}
+                  color={mutedColor}
                 />
               </TouchableOpacity>
             </View>
@@ -118,10 +139,10 @@ function LoginScreen({ navigation }: any) {
           </View>
 
           <TouchableOpacity style={styles.remember} onPress={() => setRemember((v) => !v)}>
-            <View style={[styles.checkbox, remember && styles.checkboxOn]}>
+            <View style={[styles.checkbox, { borderColor }, remember && styles.checkboxOn]}>
               {remember && <MaterialIcons name="check" size={16} color="#fff" />}
             </View>
-            <Text style={styles.rememberText}>Recordar mi sesión</Text>
+            <Text style={[styles.rememberText, { color: mutedColor }]}>Recordar mi sesión</Text>
           </TouchableOpacity>
 
           {error && (
@@ -140,21 +161,22 @@ function LoginScreen({ navigation }: any) {
           />
 
           <View style={styles.linkContainer}>
-            <Text style={styles.linkText}>¿No tienes cuenta? </Text>
+            <Text style={[styles.linkText, { color: mutedColor }]}>¿No tienes cuenta? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Register')} disabled={loading}>
               <Text style={styles.linkButton}>Regístrate aquí</Text>
             </TouchableOpacity>
           </View>
+        </LinearGradient>
         </Animated.View>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: DS.colors.surface,
   },
   scrollContent: {
     flexGrow: 1,
@@ -162,31 +184,26 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   headerContainer: {
-    marginBottom: 28,
+    marginBottom: 20,
     alignItems: 'center',
   },
-  logoTile: {
-    width: 88,
-    height: 88,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    ...DS.shadows.lg,
+  logoTop: {
+    width: 260,
+    height: 56,
+    marginBottom: 6,
   },
-  title: {
-    fontSize: 34,
-    fontFamily: DS.fonts.extrabold,
-    color: DS.colors.primary,
-    marginBottom: 4,
+  illustrationBig: {
+    width: 340,
+    height: 260,
   },
-  subtitle: {
-    fontSize: 16,
-    fontFamily: DS.fonts.medium,
-    color: DS.colors.muted,
+  welcomeTitle: {
+    fontSize: 22,
+    fontFamily: DS.fonts.bold,
+    color: '#fff',
+    marginBottom: 20,
+    textAlign: 'center',
   },
   formCard: {
-    backgroundColor: DS.colors.card,
     borderRadius: DS.borderRadius.xl,
     padding: 24,
     ...DS.shadows.md,
@@ -225,7 +242,8 @@ const styles = StyleSheet.create({
   forgotText: {
     fontSize: 15,
     fontFamily: DS.fonts.semibold,
-    color: DS.colors.primary,
+    color: '#fff',
+    textDecorationLine: 'underline',
   },
   remember: {
     flexDirection: 'row',
@@ -255,7 +273,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#ffdad6',
+    backgroundColor: DS.statContainers.red.bg,
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
@@ -264,7 +282,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontFamily: DS.fonts.medium,
-    color: '#93000a',
+    color: DS.colors.error,
   },
   submitButton: {
     marginTop: 4,
@@ -280,9 +298,10 @@ const styles = StyleSheet.create({
     fontFamily: DS.fonts.regular,
   },
   linkButton: {
-    color: DS.colors.primary,
+    color: '#fff',
     fontSize: 16,
     fontFamily: DS.fonts.bold,
+    textDecorationLine: 'underline',
   },
 });
 

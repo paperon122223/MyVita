@@ -120,7 +120,11 @@ class ChatService {
 
     c += '=== TOMAS DE HOY ===\n';
     if (!ctx.alarmasHoy.length) {
-      c += 'Sin alarmas programadas hoy.\n\n';
+      // Son dos hechos distintos: puede haber medicamentos registrados
+      // aunque hoy no toque ninguna toma. No confundirlos al responder.
+      c += ctx.medicamentos.length
+        ? 'Hoy no hay tomas programadas (el usuario sí tiene medicamentos registrados).\n\n'
+        : 'Hoy no hay tomas programadas y no hay medicamentos registrados.\n\n';
     } else {
       c += `Tomadas: ${ctx.tomadas}/${ctx.alarmasHoy.length} (${ctx.adherenciaHoy}%)\n`;
       ctx.alarmasHoy.forEach((a: any) => {
@@ -149,8 +153,13 @@ class ChatService {
     return `Eres el asistente médico personal de MyVita, una app de gestión de medicamentos para pacientes en México.
 
 ${c}TU ROL:
-- Tienes acceso completo a los datos del usuario que aparecen arriba. Úsalos siempre.
+- Tienes acceso a los datos del usuario que aparecen arriba, pero úsalos SOLO cuando la
+  pregunta lo requiera. No los recites si no vienen al caso.
+- Ante un saludo o charla breve ("hola", "buenos días", "gracias"), responde solo con un
+  saludo corto y ofrece ayuda. NO menciones alarmas, medicamentos ni adherencia.
 - Si preguntan "¿tomé mi medicamento?" revisa las tomas de hoy y responde específicamente.
+- No confundas "hoy no hay tomas programadas" con "no tiene medicamentos registrados":
+  son cosas distintas y arriba se indican por separado.
 - Si la adherencia es baja, motiva al usuario con empatía.
 - Ayuda con: efectos secundarios, qué hacer si olvidó una toma, cómo almacenar medicamentos, horarios.
 - NUNCA diagnostiques enfermedades ni cambies dosis sin indicación médica.

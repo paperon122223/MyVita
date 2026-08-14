@@ -8,14 +8,17 @@ import {
   TouchableOpacity,
   Text,
   TextInput,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useDispatch } from 'react-redux';
 import authService from '../../services/authService';
 import { GradientButton } from '../../components/ui/GradientButton';
+import { ScreenBackground } from '../../components/ui/ScreenBackground';
 import { isValidEmail } from '../../utils/validators';
 import { registerSuccess, registerFailure } from '../../redux/slices/userSlice';
+import { useDarkMode } from '../../hooks/useDarkMode';
 import { DesignSystem as DS } from '../../theme/designSystem';
 
 interface FieldProps {
@@ -27,18 +30,35 @@ interface FieldProps {
   secure?: boolean;
   keyboardType?: 'default' | 'email-address' | 'phone-pad';
   editable?: boolean;
+  textColor?: string;
+  mutedColor?: string;
+  borderColor?: string;
+  inputBg?: string;
 }
 
-function Field({ label, icon, value, onChange, placeholder, secure, keyboardType, editable }: FieldProps) {
+function Field({
+  label,
+  icon,
+  value,
+  onChange,
+  placeholder,
+  secure,
+  keyboardType,
+  editable,
+  textColor = DS.colors.text,
+  mutedColor = DS.colors.subtle,
+  borderColor = DS.colors.border,
+  inputBg = DS.colors.surfaceContainerLow,
+}: FieldProps) {
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={styles.inputWrapper}>
-        <MaterialIcons name={icon} size={22} color={DS.colors.subtle} />
+      <Text style={[styles.label, { color: textColor }]}>{label}</Text>
+      <View style={[styles.inputWrapper, { backgroundColor: inputBg, borderColor }]}>
+        <MaterialIcons name={icon} size={22} color={mutedColor} />
         <TextInput
-          style={styles.input}
+          style={[styles.input, { color: textColor }]}
           placeholder={placeholder}
-          placeholderTextColor={DS.colors.subtle}
+          placeholderTextColor={mutedColor}
           secureTextEntry={secure}
           keyboardType={keyboardType || 'default'}
           autoCapitalize={keyboardType === 'email-address' ? 'none' : 'sentences'}
@@ -53,6 +73,15 @@ function Field({ label, icon, value, onChange, placeholder, secure, keyboardType
 
 function RegisterScreen({ navigation }: any) {
   const dispatch = useDispatch();
+  const { isDark } = useDarkMode();
+  // Título/subtítulo (fuera de la tarjeta) siguen el tema normal
+  const textColor = isDark ? DS.colors.textDark : DS.colors.text;
+  const mutedColor = isDark ? DS.colors.mutedDark : DS.colors.muted;
+  // La tarjeta del formulario siempre lleva el degradado de marca — textos fijos en blanco
+  const formTextColor = '#fff';
+  const formMutedColor = 'rgba(255,255,255,0.75)';
+  const formBorderColor = 'rgba(255,255,255,0.35)';
+  const formInputBg = 'rgba(255,255,255,0.15)';
   const [nombre, setNombre] = useState('');
   const [usuario, setUsuario] = useState('');
   const [email, setEmail] = useState('');
@@ -108,20 +137,33 @@ function RegisterScreen({ navigation }: any) {
   };
 
   return (
+    <ScreenBackground isDark={isDark}>
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.container}
     >
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.headerContainer}>
-          <LinearGradient colors={DS.statGradients.signature} style={styles.logoTile}>
-            <MaterialIcons name="person-add" size={34} color="#fff" />
-          </LinearGradient>
-          <Text style={styles.title}>Crear Cuenta</Text>
-          <Text style={styles.subtitle}>Únete a MyVita y cuida tu salud</Text>
+          <Image
+            source={require('../../../assets/images/logo-myvita-register.png')}
+            style={styles.logoTop}
+            resizeMode="contain"
+          />
+          <Image
+            source={require('../../../assets/images/login-familia.png')}
+            style={styles.illustrationBig}
+            resizeMode="contain"
+          />
+          <Text style={[styles.title, { color: textColor }]}>Crear Cuenta</Text>
+          <Text style={[styles.subtitle, { color: mutedColor }]}>Únete a MyVita y cuida tu salud</Text>
         </View>
 
-        <View style={styles.formCard}>
+        <LinearGradient
+          colors={DS.statGradients.signature}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.formCard}
+        >
           <Field
             label="NOMBRE COMPLETO"
             icon="badge"
@@ -129,6 +171,10 @@ function RegisterScreen({ navigation }: any) {
             onChange={setNombre}
             placeholder="Juan Pérez"
             editable={!loading}
+            textColor={formTextColor}
+            mutedColor={formMutedColor}
+            borderColor={formBorderColor}
+            inputBg={formInputBg}
           />
           <Field
             label="USUARIO"
@@ -137,6 +183,10 @@ function RegisterScreen({ navigation }: any) {
             onChange={setUsuario}
             placeholder="juanp"
             editable={!loading}
+            textColor={formTextColor}
+            mutedColor={formMutedColor}
+            borderColor={formBorderColor}
+            inputBg={formInputBg}
           />
           <Field
             label="CORREO ELECTRÓNICO"
@@ -146,6 +196,10 @@ function RegisterScreen({ navigation }: any) {
             placeholder="tu@correo.com"
             keyboardType="email-address"
             editable={!loading}
+            textColor={formTextColor}
+            mutedColor={formMutedColor}
+            borderColor={formBorderColor}
+            inputBg={formInputBg}
           />
           <Field
             label="TELÉFONO (OPCIONAL)"
@@ -155,6 +209,10 @@ function RegisterScreen({ navigation }: any) {
             placeholder="55 1234 5678"
             keyboardType="phone-pad"
             editable={!loading}
+            textColor={formTextColor}
+            mutedColor={formMutedColor}
+            borderColor={formBorderColor}
+            inputBg={formInputBg}
           />
           <Field
             label="CONTRASEÑA"
@@ -164,6 +222,10 @@ function RegisterScreen({ navigation }: any) {
             placeholder="Mínimo 8 caracteres"
             secure
             editable={!loading}
+            textColor={formTextColor}
+            mutedColor={formMutedColor}
+            borderColor={formBorderColor}
+            inputBg={formInputBg}
           />
           <Field
             label="CONFIRMAR CONTRASEÑA"
@@ -173,6 +235,10 @@ function RegisterScreen({ navigation }: any) {
             placeholder="••••••••"
             secure
             editable={!loading}
+            textColor={formTextColor}
+            mutedColor={formMutedColor}
+            borderColor={formBorderColor}
+            inputBg={formInputBg}
           />
 
           {error && (
@@ -190,21 +256,21 @@ function RegisterScreen({ navigation }: any) {
           />
 
           <View style={styles.linkContainer}>
-            <Text style={styles.linkText}>¿Ya tienes cuenta? </Text>
+            <Text style={[styles.linkText, { color: formMutedColor }]}>¿Ya tienes cuenta? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Login')} disabled={loading}>
               <Text style={styles.linkButton}>Inicia sesión</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </LinearGradient>
       </ScrollView>
     </KeyboardAvoidingView>
+    </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: DS.colors.surface,
   },
   scrollContent: {
     flexGrow: 1,
@@ -216,28 +282,26 @@ const styles = StyleSheet.create({
     marginBottom: 22,
     alignItems: 'center',
   },
-  logoTile: {
-    width: 76,
-    height: 76,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-    ...DS.shadows.lg,
+  logoTop: {
+    width: 260,
+    height: 56,
+    marginBottom: 6,
+  },
+  illustrationBig: {
+    width: 300,
+    height: 230,
+    marginBottom: 8,
   },
   title: {
     fontSize: 28,
     fontFamily: DS.fonts.extrabold,
-    color: DS.colors.primary,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 16,
     fontFamily: DS.fonts.medium,
-    color: DS.colors.muted,
   },
   formCard: {
-    backgroundColor: DS.colors.card,
     borderRadius: DS.borderRadius.xl,
     padding: 22,
     ...DS.shadows.md,
@@ -273,7 +337,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#ffdad6',
+    backgroundColor: DS.statContainers.red.bg,
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
@@ -281,7 +345,7 @@ const styles = StyleSheet.create({
   errorText: {
     flex: 1,
     fontSize: 15,
-    color: '#93000a',
+    color: DS.colors.error,
     fontFamily: DS.fonts.medium,
   },
   submitButton: {
@@ -298,9 +362,10 @@ const styles = StyleSheet.create({
     fontFamily: DS.fonts.regular,
   },
   linkButton: {
-    color: DS.colors.primary,
+    color: '#fff',
     fontSize: 16,
     fontFamily: DS.fonts.bold,
+    textDecorationLine: 'underline',
   },
 });
 

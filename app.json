@@ -62,7 +62,9 @@
             "backgroundColor": "#0f172a"
           }
         }
-      ]
+      ],
+      "expo-audio",
+      "expo-speech-recognition"
     ]
   }
 }

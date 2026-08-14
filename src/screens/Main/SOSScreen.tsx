@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -11,10 +11,18 @@ import {
   ScrollView,
   Linking,
   FlatList,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 import { useSelector } from 'react-redux';
 import { useContactosEmergencia } from '../../hooks/useDatabase';
 import { useDarkMode } from '../../hooks/useDarkMode';
@@ -22,6 +30,7 @@ import databaseService from '../../services/database';
 import emergencyService from '../../services/emergencyService';
 import type { ContactoElegido } from '../../services/emergencyService';
 import { GradientButton } from '../../components/ui/GradientButton';
+import { ScreenBackground } from '../../components/ui/ScreenBackground';
 import { DesignSystem as DS } from '../../theme/designSystem';
 import { RootState } from '../../types';
 
@@ -43,6 +52,20 @@ function SOSScreen() {
   const [loadingContacts, setLoadingContacts] = useState(false);
   const [phoneContacts, setPhoneContacts] = useState<ContactoElegido[]>([]);
   const [contactSearch, setContactSearch] = useState('');
+
+  // Halo pulsante detrás del botón de emergencia (puramente visual)
+  const pulse = useSharedValue(0);
+  useEffect(() => {
+    pulse.value = withRepeat(
+      withTiming(1, { duration: 1600, easing: Easing.out(Easing.ease) }),
+      -1,
+      false,
+    );
+  }, [pulse]);
+  const pulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 + pulse.value * 0.3 }],
+    opacity: (1 - pulse.value) * 0.45,
+  }));
 
   const bg = isDark ? DS.colors.surfaceDark : DS.colors.surface;
   const cardBg = isDark ? DS.colors.cardDark : DS.colors.card;
@@ -210,8 +233,9 @@ function SOSScreen() {
   }, [nombre, relacion, telefono, userId, contacts, refetch]);
 
   return (
+    <ScreenBackground isDark={isDark}>
     <ScrollView
-      style={[styles.container, { backgroundColor: bg }]}
+      style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
@@ -219,28 +243,32 @@ function SOSScreen() {
       <View style={styles.sosSection}>
         <Text style={[styles.title, { color: textColor }]}>Botón de Emergencia</Text>
 
-        <TouchableOpacity
-          onPress={handleSOS}
-          disabled={sending || cooldown}
-          activeOpacity={0.8}
-          accessibilityLabel="Enviar alerta de emergencia SOS"
-        >
-          <LinearGradient
-            colors={cooldown ? ['#9ca3af', '#6b7280'] : ['#f44336', '#d32f2f']}
-            style={styles.sosButton}
+        <View style={styles.sosButtonWrap}>
+          {!cooldown && (
+            <Animated.Image
+              source={require('../../../assets/images/sos-emergency-badge.png')}
+              style={[styles.sosGlow, pulseStyle]}
+            />
+          )}
+          <TouchableOpacity
+            onPress={handleSOS}
+            disabled={sending || cooldown}
+            activeOpacity={0.8}
+            accessibilityLabel="Enviar alerta de emergencia SOS"
           >
             {sending ? (
-              <ActivityIndicator color="#fff" size="large" />
+              <View style={styles.sosLoading}>
+                <ActivityIndicator color="#fff" size="large" />
+              </View>
             ) : (
-              <>
-                <MaterialIcons name="sos" size={58} color="#fff" />
-                <Text style={styles.sosButtonText}>
-                  {cooldown ? 'ENVIADO' : 'EMERGENCIA'}
-                </Text>
-              </>
+              <Image
+                source={require('../../../assets/images/sos-boton-grande.png')}
+                style={[styles.sosButtonImage, cooldown && styles.sosButtonImageDisabled]}
+                resizeMode="contain"
+              />
             )}
-          </LinearGradient>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
 
         <Text style={[styles.instruction, { color: mutedColor }]}>
           Mantén la calma. Al presionar, registramos la alerta y te ayudamos a llamar a tu contacto
@@ -413,6 +441,7 @@ function SOSScreen() {
         </View>
       </Modal>
     </ScrollView>
+    </ScreenBackground>
   );
 }
 
@@ -422,7 +451,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
-    paddingBottom: 36,
+    paddingBottom: 150,
   },
   sosSection: {
     alignItems: 'center',
@@ -433,18 +462,34 @@ const styles = StyleSheet.create({
     fontFamily: DS.fonts.extrabold,
     marginBottom: 22,
   },
-  sosButton: {
-    width: 190,
-    height: 190,
-    borderRadius: 95,
+  sosButtonWrap: {
+    width: 230,
+    height: 230,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
+  sosGlow: {
+    position: 'absolute',
+    width: 230,
+    height: 230,
+    pointerEvents: 'none',
+  },
+  sosButtonImage: {
+    width: 220,
+    height: 220,
+  },
+  sosButtonImageDisabled: {
+    opacity: 0.45,
+  },
+  sosLoading: {
+    width: 220,
+    height: 220,
+    borderRadius: 110,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 18,
-    shadowColor: '#ba1a1a',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 10,
+    backgroundColor: DS.colors.error,
+    ...DS.shadows.glow,
   },
   sosButtonText: {
     color: '#fff',

@@ -25,6 +25,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import apiService from '../../services/apiService';
+import { ScreenBackground } from '../../components/ui/ScreenBackground';
 import { DesignSystem as DS } from '../../theme/designSystem';
 import { RootState } from '../../types';
 
@@ -43,9 +44,9 @@ type PacienteVinculado = {
 
 function AdherenciaBadge({ pct }: { pct: number }) {
   const gradient: [string, string] =
-    pct >= 90 ? ['#006e2a', '#3ce36a']
-    : pct >= 60 ? ['#8c4c00', '#b06000']
-    : ['#ba1a1a', '#ff5449'];
+    pct >= 90 ? DS.statGradients.adherence
+    : pct >= 60 ? DS.statGradients.pending
+    : DS.statGradients.streak;
   return (
     <LinearGradient colors={gradient} style={styles.badge}>
       <Text style={styles.badgeText}>{pct}%</Text>
@@ -70,7 +71,7 @@ function PacienteCard({
   return (
     <View style={[styles.pacienteCard, { backgroundColor: cardBg }]}>
       <View style={styles.pacienteHeader}>
-        <LinearGradient colors={DS.statGradients.signature as any} style={styles.avatarGradient}>
+        <LinearGradient colors={DS.sectionGradients.cuidador as any} style={styles.avatarGradient}>
           <Text style={styles.avatarInicial}>{p.nombre.charAt(0).toUpperCase()}</Text>
         </LinearGradient>
         <View style={{ flex: 1 }}>
@@ -106,7 +107,7 @@ function PacienteCard({
 
       {!p.sinDatos && p.adherenciaHoy < 60 && (
         <View style={styles.alertRow}>
-          <MaterialIcons name="warning" size={16} color="#ba1a1a" />
+          <MaterialIcons name="warning" size={16} color={DS.colors.error} />
           <Text style={styles.alertText}>Adherencia baja — recuérdale tomar sus medicamentos.</Text>
         </View>
       )}
@@ -321,8 +322,9 @@ function CuidadorScreen() {
   const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
   return (
+    <ScreenBackground isDark={isDark}>
     <ScrollView
-      style={[styles.container, { backgroundColor: bg }]}
+      style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
       refreshControl={
@@ -334,7 +336,7 @@ function CuidadorScreen() {
         />
       }
     >
-      <LinearGradient colors={['#006096', '#006e2a']} style={styles.header}>
+      <LinearGradient colors={DS.sectionGradients.cuidador} style={styles.header}>
         <View style={styles.headerIconWrap}>
           <MaterialIcons name="supervisor-account" size={34} color="#fff" />
         </View>
@@ -372,7 +374,7 @@ function CuidadorScreen() {
           <MaterialIcons name="cloud-off" size={44} color={DS.colors.subtle} />
           <Text style={[styles.errorText, { color: textColor }]}>{errorRed}</Text>
           <TouchableOpacity style={styles.fullBtn} onPress={cargarPacientes}>
-            <LinearGradient colors={DS.statGradients.signature as any} style={styles.fullGradient}>
+            <LinearGradient colors={DS.sectionGradients.cuidador as any} style={styles.fullGradient}>
               <MaterialIcons name="refresh" size={18} color="#fff" />
               <Text style={styles.fullLabel}>Reintentar</Text>
             </LinearGradient>
@@ -406,7 +408,7 @@ function CuidadorScreen() {
                 style={styles.fullBtn}
                 onPress={() => { setCodigoInput(''); setModalVincular(true); }}
               >
-                <LinearGradient colors={DS.statGradients.signature as any} style={styles.fullGradient}>
+                <LinearGradient colors={DS.sectionGradients.cuidador as any} style={styles.fullGradient}>
                   <MaterialIcons name="person-add" size={20} color="#fff" />
                   <Text style={styles.fullLabel}>Vincular primer paciente</Text>
                 </LinearGradient>
@@ -454,7 +456,7 @@ function CuidadorScreen() {
             />
 
             <TouchableOpacity style={styles.fullBtn} onPress={handleVincular} disabled={vinculando}>
-              <LinearGradient colors={DS.statGradients.signature as any} style={styles.fullGradient}>
+              <LinearGradient colors={DS.sectionGradients.cuidador as any} style={styles.fullGradient}>
                 {vinculando ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
@@ -499,12 +501,12 @@ function CuidadorScreen() {
                   <MaterialIcons
                     name="timer"
                     size={16}
-                    color={segundosRestantes > 0 ? DS.statContainers.orange.fg : '#ba1a1a'}
+                    color={segundosRestantes > 0 ? DS.statContainers.orange.fg : DS.colors.error}
                   />
                   <Text
                     style={[
                       styles.expiraText,
-                      { color: segundosRestantes > 0 ? mutedColor : '#ba1a1a' },
+                      { color: segundosRestantes > 0 ? mutedColor : DS.colors.error },
                     ]}
                   >
                     {segundosRestantes > 0 ? `Expira en ${mmss(segundosRestantes)}` : 'Código expirado'}
@@ -513,14 +515,14 @@ function CuidadorScreen() {
 
                 {segundosRestantes > 0 ? (
                   <TouchableOpacity style={styles.fullBtn} onPress={compartirCodigo}>
-                    <LinearGradient colors={DS.statGradients.signature as any} style={styles.fullGradient}>
+                    <LinearGradient colors={DS.sectionGradients.cuidador as any} style={styles.fullGradient}>
                       <MaterialIcons name="share" size={20} color="#fff" />
                       <Text style={styles.fullLabel}>Compartir código</Text>
                     </LinearGradient>
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity style={styles.fullBtn} onPress={generarMiCodigo}>
-                    <LinearGradient colors={DS.statGradients.signature as any} style={styles.fullGradient}>
+                    <LinearGradient colors={DS.sectionGradients.cuidador as any} style={styles.fullGradient}>
                       <MaterialIcons name="refresh" size={20} color="#fff" />
                       <Text style={styles.fullLabel}>Generar nuevo código</Text>
                     </LinearGradient>
@@ -532,12 +534,13 @@ function CuidadorScreen() {
         </View>
       </Modal>
     </ScrollView>
+    </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { paddingBottom: 40 },
+  content: { paddingBottom: 150 },
 
   header: {
     alignItems: 'center',
@@ -600,7 +603,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius: DS.borderRadius.lg,
+    borderRadius: DS.borderRadius.full,
   },
   addBtnLabel: { fontSize: 14, fontFamily: DS.fonts.bold },
 
@@ -630,8 +633,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    paddingVertical: 16,
-    borderRadius: DS.borderRadius.lg,
+    paddingVertical: 17,
+    borderRadius: DS.borderRadius.full,
+    ...DS.shadows.sm,
   },
   fullLabel: { fontSize: 17, fontFamily: DS.fonts.bold, color: '#fff' },
 
@@ -676,11 +680,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#ffdad6',
+    backgroundColor: DS.statContainers.red.bg,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
-  alertText: { flex: 1, fontSize: 13, fontFamily: DS.fonts.medium, color: '#ba1a1a' },
+  alertText: { flex: 1, fontSize: 13, fontFamily: DS.fonts.medium, color: DS.colors.error },
   desvincularBtn: {
     flexDirection: 'row',
     alignItems: 'center',

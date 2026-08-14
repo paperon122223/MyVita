@@ -37,15 +37,15 @@ export type SOSStackParamList = {
 };
 
 export type SettingsStackParamList = {
-  SettingsScreen: undefined;
-  EditProfile: undefined;
-  ManageContacts: undefined;
-  NotificationSettings: undefined;
+  SettingsMenu: undefined;
+  Privacy: undefined;
+  Terms: undefined;
 };
 
+// Pantallas secundarias, agrupadas bajo la pestaña "Más"
 export type MoreStackParamList = {
   MoreMenu: undefined;
-  Chat: undefined;
+  Historial: undefined;
   Diary: undefined;
   Mapa: undefined;
   Cuidador: undefined;
@@ -58,8 +58,9 @@ export type MoreStackParamList = {
 export type MainTabParamList = {
   DashboardTab: undefined;
   MedicationsTab: undefined;
-  AlarmsTab: undefined;
   SOSTab: undefined;
+  AlarmsTab: undefined;
+  ChatTab: undefined;
   MoreTab: NavigatorScreenParams<MoreStackParamList> | undefined;
 };
 

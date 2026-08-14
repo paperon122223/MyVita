@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,15 +8,22 @@ import {
   ActivityIndicator,
   Modal,
   TextInput,
+  Image,
   Alert,
+  Platform,
+  ScrollView,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 import { useMedicamentos } from '../../hooks/useDatabase';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import databaseService from '../../services/database';
 import { GradientButton } from '../../components/ui/GradientButton';
+import { ScreenBackground } from '../../components/ui/ScreenBackground';
+import { TAB_BAR_HEIGHT } from '../../utils/layout';
 import { DesignSystem as DS } from '../../theme/designSystem';
 import { RootState } from '../../types';
 
@@ -24,18 +31,42 @@ function MedicationsScreen() {
   const currentUser = useSelector((state: RootState) => state.user.currentUser);
   const userId = currentUser?.id || '';
   const { isDark } = useDarkMode();
+  const insets = useSafeAreaInsets();
+  // La barra de tabs flota (position:absolute) sobre el contenido, con su propio
+  // margen de safe-area — el FAB debe despejarla usando el mismo cálculo,
+  // si no queda tapado o dentro de la zona de gestos del sistema.
+  const fabBottom = Math.max(insets.bottom, 8) + TAB_BAR_HEIGHT + 16;
   const { data: medications, loading, refetch } = useMedicamentos(userId);
 
   const [modalVisible, setModalVisible] = useState(false);
+  // Id del medicamento en edición; null = alta de uno nuevo.
+  const [editandoId, setEditandoId] = useState<string | null>(null);
   const [nombre, setNombre] = useState('');
   const [dosis, setDosis] = useState('');
   const [unidad, setUnidad] = useState('');
   const [descripcion, setDescripcion] = useState('');
+  const [existencias, setExistencias] = useState('');
   const [saving, setSaving] = useState(false);
   const [busqueda, setBusqueda] = useState('');
+  // Existencias por medicamento_id (vacío = sin control de inventario)
+  const [inventario, setInventario] = useState<Record<string, any>>({});
+
+  const cargarInventario = useCallback(async () => {
+    if (!userId) return;
+    try {
+      setInventario(await databaseService.getInventario(userId));
+    } catch {
+      setInventario({});
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    cargarInventario();
+  }, [cargarInventario, medications]);
 
   const bg = isDark ? DS.colors.surfaceDark : DS.colors.surface;
   const cardBg = isDark ? DS.colors.cardDark : DS.colors.card;
+  const medGradient = DS.sectionGradients.medicinas;
   const textColor = isDark ? DS.colors.textDark : DS.colors.text;
   const mutedColor = isDark ? DS.colors.mutedDark : DS.colors.muted;
 
@@ -44,39 +75,141 @@ function MedicationsScreen() {
     m.nombre?.toLowerCase().includes(busqueda.trim().toLowerCase()),
   );
 
-  const handleCreate = useCallback(async () => {
+  const limpiarFormulario = useCallback(() => {
+    setEditandoId(null);
+    setNombre('');
+    setDosis('');
+    setUnidad('');
+    setDescripcion('');
+    setExistencias('');
+  }, []);
+
+  const abrirNuevo = useCallback(() => {
+    limpiarFormulario();
+    setModalVisible(true);
+  }, [limpiarFormulario]);
+
+  const abrirEdicion = useCallback((med: any) => {
+    setEditandoId(med.id);
+    setNombre(med.nombre ?? '');
+    setDosis(med.dosis ?? '');
+    setUnidad(med.unidad ?? '');
+    setDescripcion(med.descripcion ?? '');
+    const stock = inventario[med.id]?.cantidad;
+    setExistencias(stock === null || stock === undefined ? '' : String(stock));
+    setModalVisible(true);
+  }, [inventario]);
+
+  const cerrarModal = useCallback(() => {
+    setModalVisible(false);
+    limpiarFormulario();
+  }, [limpiarFormulario]);
+
+  const handleGuardar = useCallback(async () => {
     if (!nombre.trim()) {
       Alert.alert('Falta información', 'Escribe el nombre del medicamento');
       return;
     }
     setSaving(true);
     try {
-      await databaseService.crearMedicamento({
-        usuarioId: userId,
-        nombre: nombre.trim(),
-        dosis: dosis.trim() || null,
-        unidad: unidad.trim() || null,
-        descripcion: descripcion.trim() || null,
-      });
+      let medicamentoId = editandoId;
+      if (editandoId) {
+        await databaseService.actualizarMedicamento(editandoId, {
+          nombre: nombre.trim(),
+          dosis: dosis.trim(),
+          unidad: unidad.trim(),
+          descripcion: descripcion.trim(),
+        });
+      } else {
+        medicamentoId = await databaseService.crearMedicamento({
+          usuarioId: userId,
+          nombre: nombre.trim(),
+          dosis: dosis.trim() || null,
+          unidad: unidad.trim() || null,
+          descripcion: descripcion.trim() || null,
+        });
+      }
+
+      // Campo vacío = el usuario no quiere llevar conteo de este medicamento.
+      const cantidad = existencias.trim() === '' ? null : Number(existencias.trim());
+      if (medicamentoId && (cantidad === null || Number.isFinite(cantidad))) {
+        await databaseService.guardarInventario(userId, medicamentoId, cantidad);
+      }
+
       setModalVisible(false);
-      setNombre('');
-      setDosis('');
-      setUnidad('');
-      setDescripcion('');
+      limpiarFormulario();
       await refetch();
+      await cargarInventario();
     } catch (e) {
       Alert.alert('Error', 'No se pudo guardar el medicamento.');
     } finally {
       setSaving(false);
     }
-  }, [nombre, dosis, unidad, descripcion, userId, refetch]);
+  }, [
+    editandoId,
+    nombre,
+    dosis,
+    unidad,
+    descripcion,
+    existencias,
+    userId,
+    refetch,
+    limpiarFormulario,
+    cargarInventario,
+  ]);
+
+  const handleEliminar = useCallback(
+    async (med: any) => {
+      // Avisar si el medicamento tiene alarmas por venir: borrarlo dejaría
+      // recordatorios apuntando a algo que ya no existe.
+      let aviso = '';
+      try {
+        const alarmas = await databaseService.contarAlarmasDeMedicamento(med.id);
+        if (alarmas > 0) {
+          aviso = `\n\nTiene ${alarmas} alarma${alarmas === 1 ? '' : 's'} programada${
+            alarmas === 1 ? '' : 's'
+          }. Revísalas después de borrarlo.`;
+        }
+      } catch {
+        // Si falla el conteo, se continúa: no debe impedir el borrado.
+      }
+
+      Alert.alert(
+        'Borrar medicamento',
+        `¿Seguro que quieres borrar "${med.nombre}"?${aviso}`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Borrar',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await databaseService.eliminarMedicamento(med.id);
+                await refetch();
+              } catch (e) {
+                Alert.alert('Error', 'No se pudo borrar el medicamento.');
+              }
+            },
+          },
+        ],
+      );
+    },
+    [refetch],
+  );
 
   const renderMedication = ({ item, index }: any) => {
     const tile = DS.statContainers[tileVariants[index % tileVariants.length]];
+    const registro = inventario[item.id];
+    // null = sin control de inventario para este medicamento
+    const stock =
+      registro?.cantidad === null || registro?.cantidad === undefined
+        ? null
+        : Number(registro.cantidad);
+    const stockBajo = stock !== null && stock <= (registro?.umbral_aviso ?? 5);
     return (
       <View style={[styles.medCard, { backgroundColor: cardBg }]}>
         <View style={[styles.medIcon, { backgroundColor: tile.bg }]}>
-          <MaterialIcons name="medication" size={28} color={tile.fg} />
+          <Image source={require('../../../assets/images/pildora.png')} style={styles.medIconImage} resizeMode="contain" />
         </View>
         <View style={styles.medInfo}>
           <Text style={[styles.medName, { color: textColor }]} numberOfLines={1}>
@@ -92,9 +225,53 @@ function MedicationsScreen() {
               {item.descripcion}
             </Text>
           )}
+          {stock !== null && (
+            <View style={styles.stockRow}>
+              <MaterialIcons
+                name={stockBajo ? 'error-outline' : 'inventory-2'}
+                size={15}
+                color={stockBajo ? DS.colors.error : mutedColor}
+              />
+              <Text
+                style={[
+                  styles.stockTexto,
+                  { color: stockBajo ? DS.colors.error : mutedColor },
+                ]}
+              >
+                {stock === 0
+                  ? 'Se agotó — compra más'
+                  : stockBajo
+                    ? `Quedan ${stock} — compra más`
+                    : `Quedan ${stock}`}
+              </Text>
+            </View>
+          )}
         </View>
-        <View style={[styles.medCheck, { backgroundColor: isDark ? DS.colors.surfaceContainerDark : DS.colors.surfaceContainer }]}>
-          <MaterialIcons name="check-circle-outline" size={24} color={DS.colors.primary} />
+        <View style={styles.medActions}>
+          <TouchableOpacity
+            onPress={() => abrirEdicion(item)}
+            style={[
+              styles.medActionButton,
+              { backgroundColor: isDark ? DS.colors.surfaceContainerDark : DS.colors.surfaceContainer },
+            ]}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel={`Editar ${item.nombre}`}
+          >
+            <MaterialIcons name="edit" size={22} color={DS.colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => handleEliminar(item)}
+            style={[
+              styles.medActionButton,
+              { backgroundColor: isDark ? 'rgba(229,57,53,0.16)' : '#FBDEDC' },
+            ]}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel={`Borrar ${item.nombre}`}
+          >
+            <MaterialIcons name="delete-outline" size={22} color={DS.colors.error} />
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -120,14 +297,17 @@ function MedicationsScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: bg }]}>
-        <ActivityIndicator size="large" color={DS.colors.primary} />
-      </View>
+      <ScreenBackground isDark={isDark}>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={DS.colors.primary} />
+        </View>
+      </ScreenBackground>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: bg }]}>
+    <ScreenBackground isDark={isDark}>
+    <View style={styles.container}>
       <FlatList
         data={medsFiltradas}
         renderItem={renderMedication}
@@ -144,8 +324,8 @@ function MedicationsScreen() {
             </View>
           ) : (
             <View style={styles.emptyContainer}>
-              <LinearGradient colors={DS.statGradients.active} style={styles.emptyIcon}>
-                <MaterialIcons name="medication" size={36} color="#fff" />
+              <LinearGradient colors={medGradient} style={styles.emptyIcon}>
+                <Image source={require('../../../assets/images/pildora.png')} style={styles.emptyIconImage} resizeMode="contain" />
               </LinearGradient>
               <Text style={[styles.emptyTitle, { color: textColor }]}>Sin medicamentos</Text>
               <Text style={[styles.emptyText, { color: mutedColor }]}>
@@ -157,26 +337,32 @@ function MedicationsScreen() {
       />
 
       <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setModalVisible(true)}
+        style={[styles.fab, { bottom: fabBottom }]}
+        onPress={abrirNuevo}
         accessibilityLabel="Agregar medicamento"
       >
-        <LinearGradient colors={DS.statGradients.signature} style={styles.fabGradient}>
+        <LinearGradient colors={medGradient} style={styles.fabGradient}>
           <MaterialIcons name="add" size={26} color="#fff" />
           <Text style={styles.fabText}>Agregar</Text>
         </LinearGradient>
       </TouchableOpacity>
 
       <Modal visible={modalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
           <View style={[styles.modalCard, { backgroundColor: cardBg }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: textColor }]}>Nuevo Medicamento</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <Text style={[styles.modalTitle, { color: textColor }]}>
+                {editandoId ? 'Editar Medicamento' : 'Nuevo Medicamento'}
+              </Text>
+              <TouchableOpacity onPress={cerrarModal}>
                 <MaterialIcons name="close" size={24} color={mutedColor} />
               </TouchableOpacity>
             </View>
 
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <Text style={styles.fieldLabel}>NOMBRE *</Text>
             <TextInput
               style={[styles.modalInput, { color: textColor, backgroundColor: bg, borderColor: isDark ? DS.colors.borderDark : DS.colors.border }]}
@@ -209,6 +395,20 @@ function MedicationsScreen() {
               </View>
             </View>
 
+            <Text style={styles.fieldLabel}>EXISTENCIAS (OPCIONAL)</Text>
+            <TextInput
+              style={[styles.modalInput, { color: textColor, backgroundColor: bg, borderColor: isDark ? DS.colors.borderDark : DS.colors.border }]}
+              placeholder="¿Cuántas te quedan? Ej. 30"
+              placeholderTextColor={DS.colors.subtle}
+              value={existencias}
+              onChangeText={(texto) => setExistencias(texto.replace(/[^0-9]/g, ''))}
+              keyboardType="number-pad"
+            />
+            <Text style={[styles.fieldHint, { color: mutedColor }]}>
+              Se descuenta sola cada vez que marcas una toma. Te avisamos cuando queden 5 o menos.
+              Déjalo vacío si no quieres llevar el conteo.
+            </Text>
+
             <Text style={styles.fieldLabel}>NOTAS (OPCIONAL)</Text>
             <TextInput
               style={[styles.modalInput, styles.modalTextarea, { color: textColor, backgroundColor: bg, borderColor: isDark ? DS.colors.borderDark : DS.colors.border }]}
@@ -220,15 +420,18 @@ function MedicationsScreen() {
             />
 
             <GradientButton
-              label={saving ? 'Guardando…' : 'Guardar Medicamento'}
-              onPress={handleCreate}
+              label={saving ? 'Guardando…' : editandoId ? 'Guardar Cambios' : 'Guardar Medicamento'}
+              onPress={handleGuardar}
               loading={saving}
               style={styles.modalButton}
+              gradientColors={medGradient}
             />
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
+    </ScreenBackground>
   );
 }
 
@@ -243,7 +446,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    paddingBottom: 96,
+    paddingBottom: 150,
     flexGrow: 1,
   },
   searchBar: {
@@ -279,6 +482,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  medIconImage: {
+    width: 38,
+    height: 38,
+  },
   medInfo: {
     flex: 1,
   },
@@ -296,7 +503,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: DS.fonts.regular,
   },
-  medCheck: {
+  stockRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 4,
+  },
+  stockTexto: {
+    fontSize: 13,
+    fontFamily: DS.fonts.semibold,
+  },
+  fieldHint: {
+    fontSize: 12,
+    fontFamily: DS.fonts.regular,
+    lineHeight: 17,
+    marginTop: -6,
+    marginBottom: 6,
+  },
+  medActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  medActionButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -309,6 +537,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 60,
     gap: 10,
+  },
+  emptyIconImage: {
+    width: 48,
+    height: 48,
   },
   emptyIcon: {
     width: 76,
@@ -337,14 +569,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    borderRadius: 28,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
+    borderRadius: DS.borderRadius.full,
+    paddingVertical: 15,
+    paddingHorizontal: 22,
     ...DS.shadows.lg,
   },
   fabText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: DS.fonts.bold,
   },
   modalOverlay: {
@@ -357,6 +589,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: DS.borderRadius.xl,
     padding: 22,
     paddingBottom: 36,
+    maxHeight: '90%',
   },
   modalHeader: {
     flexDirection: 'row',

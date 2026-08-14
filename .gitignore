@@ -99,3 +99,6 @@ files_context/
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Volcados de logcat para depuración (no forman parte del proyecto)
+logcat*.txt

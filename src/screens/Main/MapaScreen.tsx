@@ -24,6 +24,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useDarkMode } from '../../hooks/useDarkMode';
+import { ScreenBackground } from '../../components/ui/ScreenBackground';
 import { DesignSystem as DS } from '../../theme/designSystem';
 import { API_BASE_URL } from '../../utils/constants';
 
@@ -55,7 +56,6 @@ function MapaScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const bg = isDark ? DS.colors.surfaceDark : DS.colors.surface;
   const cardBg = isDark ? DS.colors.cardDark : DS.colors.card;
   const textColor = isDark ? DS.colors.textDark : DS.colors.text;
   const mutedColor = isDark ? DS.colors.mutedDark : DS.colors.muted;
@@ -143,12 +143,13 @@ function MapaScreen() {
     new Date(ts).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
 
   return (
+    <ScreenBackground isDark={isDark}>
     <ScrollView
-      style={[styles.container, { backgroundColor: bg }]}
+      style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <LinearGradient colors={DS.statGradients.signature as any} style={styles.header}>
+      <LinearGradient colors={DS.sectionGradients.mapa as any} style={styles.header}>
         <MaterialIcons name="location-on" size={38} color="#fff" />
         <Text style={styles.headerTitle}>Mi Ubicación</Text>
         <Text style={styles.headerSub}>
@@ -165,10 +166,10 @@ function MapaScreen() {
 
       {!loading && error && (
         <View style={[styles.card, { backgroundColor: cardBg }]}>
-          <MaterialIcons name="location-off" size={48} color="#ba1a1a" />
+          <MaterialIcons name="location-off" size={48} color={DS.colors.error} />
           <Text style={[styles.msgText, { color: textColor }]}>{error}</Text>
           <TouchableOpacity style={styles.fullBtn} onPress={obtenerUbicacion}>
-            <LinearGradient colors={DS.statGradients.signature as any} style={styles.fullGradient}>
+            <LinearGradient colors={DS.sectionGradients.mapa as any} style={styles.fullGradient}>
               <MaterialIcons name="refresh" size={20} color="#fff" />
               <Text style={styles.fullLabel}>Reintentar</Text>
             </LinearGradient>
@@ -189,7 +190,7 @@ function MapaScreen() {
             ))}
             {/* Pin centrado: la punta del ícono apunta al centro exacto */}
             <View style={styles.pinWrap} pointerEvents="none">
-              <MaterialIcons name="location-on" size={44} color="#ba1a1a" />
+              <MaterialIcons name="location-on" size={44} color={DS.colors.error} />
             </View>
           </View>
         </View>
@@ -243,7 +244,7 @@ function MapaScreen() {
       {!loading && location && (
         <View style={styles.actions}>
           <TouchableOpacity style={styles.fullBtn} onPress={abrirEnMaps} activeOpacity={0.85}>
-            <LinearGradient colors={DS.statGradients.signature as any} style={styles.fullGradient}>
+            <LinearGradient colors={DS.sectionGradients.mapa as any} style={styles.fullGradient}>
               <MaterialIcons name="map" size={22} color="#fff" />
               <Text style={styles.fullLabel}>Abrir en Google Maps</Text>
             </LinearGradient>
@@ -261,12 +262,13 @@ function MapaScreen() {
         </View>
       )}
     </ScrollView>
+    </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { paddingBottom: 40 },
+  content: { paddingBottom: 150 },
   header: {
     alignItems: 'center',
     paddingTop: 36,
@@ -300,7 +302,7 @@ const styles = StyleSheet.create({
   },
   mapViewport: {
     overflow: 'hidden',
-    backgroundColor: '#e5eeff',
+    backgroundColor: DS.colors.surfaceContainer,
   },
   tile: {
     position: 'absolute',
@@ -326,13 +328,13 @@ const styles = StyleSheet.create({
   coordValue: { fontSize: 17, fontFamily: DS.fonts.bold },
 
   actions: { marginHorizontal: 20, gap: 12 },
-  fullBtn: { width: '100%', borderRadius: DS.borderRadius.lg, overflow: 'hidden' },
+  fullBtn: { width: '100%', borderRadius: DS.borderRadius.full, overflow: 'hidden' },
   fullGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    paddingVertical: 16,
+    paddingVertical: 17,
   },
   fullLabel: { fontSize: 17, fontFamily: DS.fonts.bold, color: '#fff' },
   outlineBtn: {
@@ -340,8 +342,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    paddingVertical: 14,
-    borderRadius: DS.borderRadius.lg,
+    paddingVertical: 15,
+    borderRadius: DS.borderRadius.full,
     borderWidth: 1.5,
     borderColor: DS.colors.border,
   },

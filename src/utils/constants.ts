@@ -1,8 +1,9 @@
 // API Configuration
-// Backend local para demostración. El teléfono debe estar en la misma red que
-// la laptop. Si cambia la red, se debe actualizar esta dirección IPv4.
+// Backend desplegado en Railway: funciona desde cualquier red (datos o WiFi).
+// Para desarrollo local, cambiar por la IPv4 de la laptop, p. ej.
+// 'http://192.168.1.73:3000/api' (el teléfono debe estar en la misma red).
 export const CLOUD_BACKEND_ENABLED = true;
-export const API_BASE_URL = 'http://192.168.1.73:3000/api';
+export const API_BASE_URL = 'https://myvita-backend-production.up.railway.app/api';
 export const API_TIMEOUT = 30000; // 30 seconds
 export const SYNC_INTERVAL = 300000; // 5 minutes
 export const OFFLINE_QUEUE_RETRY_INTERVAL = 60000; // 1 minute
@@ -130,7 +131,7 @@ export const API_ENDPOINTS = {
   ALARMS: '/alarms',
   TOMAS: '/tomas',
   DIARY: '/diary',
-  CHAT: '/chat/groq',
+  CHAT: '/chat/mensaje',
   SOS: '/sos',
   USER_PROFILE: '/user/profile',
   CONTACTS: '/contacts',

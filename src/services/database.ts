@@ -276,6 +276,8 @@ export const DatabaseService = {
       `ALTER TABLE alarmas ADD COLUMN dias_semana TEXT`,
       `ALTER TABLE alarmas ADD COLUMN fecha_fin TEXT`,
       `ALTER TABLE alarmas ADD COLUMN recurrencia_id TEXT`,
+      // Umbral para avisar "te quedan pocas"; 5 unidades por defecto.
+      `ALTER TABLE inventario ADD COLUMN umbral_aviso INTEGER DEFAULT 5`,
     ];
     for (const sql of migraciones) {
       try {
@@ -704,6 +706,17 @@ export const DatabaseService = {
           now,
         ],
       );
+      // Al confirmar la toma se descuenta una unidad del inventario, si el
+      // usuario lleva conteo de ese medicamento.
+      if (alarma.medicamento_id) {
+        try {
+          await this.descontarInventario(alarma.medicamento_id);
+        } catch (error) {
+          // El inventario es un extra: si falla, la toma igual queda registrada.
+          console.warn('No se pudo descontar del inventario:', error);
+        }
+      }
+
       const actualizada = await database.getFirstAsync<any>(`SELECT * FROM alarmas WHERE id = ?`, [alarmaId]);
       if (actualizada) await this.encolarCambio('alarmas', 'UPDATE', alarmaId, actualizada);
     }
@@ -808,6 +821,188 @@ export const DatabaseService = {
     if (row) await this.encolarCambio('medicamentos', 'INSERT', id, row);
 
     return id;
+  },
+
+  /**
+   * Actualizar medicamento. Solo cambia los campos editables; el resto
+   * (usuario_id, created_at) se conserva. Marca el registro como pendiente
+   * de sincronizar.
+   */
+  async actualizarMedicamento(
+    id: string,
+    datos: { nombre: string; descripcion?: string; dosis?: string; unidad?: string },
+  ): Promise<void> {
+    const database = await this.getDB();
+    const now = new Date().toISOString();
+
+    await database.runAsync(
+      `UPDATE medicamentos
+         SET nombre = ?, descripcion = ?, dosis = ?, unidad = ?,
+             updated_at = ?, synced_at = NULL
+       WHERE id = ? AND deleted_at IS NULL`,
+      [
+        datos.nombre,
+        datos.descripcion || null,
+        datos.dosis || null,
+        datos.unidad || null,
+        now,
+        id,
+      ],
+    );
+
+    const row = await database.getFirstAsync<any>(`SELECT * FROM medicamentos WHERE id = ?`, [id]);
+    if (row) await this.encolarCambio('medicamentos', 'UPDATE', id, row);
+  },
+
+  /**
+   * Borrado suave del medicamento (deleted_at), para que la sincronización
+   * pueda propagarlo y no se pierda el histórico de tomas asociado.
+   */
+  async eliminarMedicamento(id: string): Promise<void> {
+    const database = await this.getDB();
+    const now = new Date().toISOString();
+
+    await database.runAsync(
+      `UPDATE medicamentos
+         SET deleted_at = ?, updated_at = ?, synced_at = NULL
+       WHERE id = ?`,
+      [now, now, id],
+    );
+
+    const row = await database.getFirstAsync<any>(`SELECT * FROM medicamentos WHERE id = ?`, [id]);
+    if (row) await this.encolarCambio('medicamentos', 'DELETE', id, row);
+  },
+
+  /** Cuántas alarmas activas (aún no pasadas) dependen de un medicamento. */
+  async contarAlarmasDeMedicamento(medicamentoId: string): Promise<number> {
+    const database = await this.getDB();
+    const hoy = localDateKey(new Date());
+    const row = await database.getFirstAsync<{ total: number }>(
+      `SELECT COUNT(*) AS total FROM alarmas
+       WHERE medicamento_id = ? AND deleted_at IS NULL AND fecha >= ?`,
+      [medicamentoId, hoy],
+    );
+    return row?.total ?? 0;
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // INVENTARIO — existencias por medicamento y aviso de "quedan pocas"
+  // ═══════════════════════════════════════════════════════════════
+
+  /** Existencias de todos los medicamentos del usuario, por medicamento_id. */
+  async getInventario(usuarioId: string): Promise<Record<string, any>> {
+    const database = await this.getDB();
+    const filas = await database.getAllAsync<any>(
+      `SELECT medicamento_id, cantidad, umbral_aviso
+         FROM inventario
+        WHERE usuario_id = ? AND deleted_at IS NULL`,
+      [usuarioId],
+    );
+
+    const porMedicamento: Record<string, any> = {};
+    for (const fila of filas) {
+      if (fila.medicamento_id) porMedicamento[fila.medicamento_id] = fila;
+    }
+    return porMedicamento;
+  },
+
+  /**
+   * Guarda las existencias de un medicamento (crea el registro o lo actualiza).
+   * `cantidad` null borra el control de inventario de ese medicamento.
+   */
+  async guardarInventario(
+    usuarioId: string,
+    medicamentoId: string,
+    cantidad: number | null,
+    umbralAviso = 5,
+  ): Promise<void> {
+    const database = await this.getDB();
+    const now = new Date().toISOString();
+
+    const existente = await database.getFirstAsync<any>(
+      `SELECT id FROM inventario WHERE medicamento_id = ? AND deleted_at IS NULL`,
+      [medicamentoId],
+    );
+
+    if (cantidad === null) {
+      if (existente) {
+        await database.runAsync(
+          `UPDATE inventario SET deleted_at = ?, updated_at = ? WHERE id = ?`,
+          [now, now, existente.id],
+        );
+      }
+      return;
+    }
+
+    if (existente) {
+      await database.runAsync(
+        `UPDATE inventario
+            SET cantidad = ?, umbral_aviso = ?, updated_at = ?, synced_at = NULL
+          WHERE id = ?`,
+        [cantidad, umbralAviso, now, existente.id],
+      );
+    } else {
+      await database.runAsync(
+        `INSERT INTO inventario (
+           id, usuario_id, medicamento_id, cantidad, umbral_aviso, created_at, updated_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [`inv_${Date.now()}`, usuarioId, medicamentoId, cantidad, umbralAviso, now, now],
+      );
+    }
+  },
+
+  /**
+   * Descuenta una unidad al confirmar una toma. No baja de cero: si el conteo
+   * ya está en 0 significa que el usuario no lo ha actualizado, y un número
+   * negativo confundiría más que ayudar.
+   */
+  async descontarInventario(medicamentoId: string, unidades = 1): Promise<void> {
+    if (!medicamentoId) return;
+    const database = await this.getDB();
+    await database.runAsync(
+      `UPDATE inventario
+          SET cantidad = MAX(0, cantidad - ?), updated_at = ?, synced_at = NULL
+        WHERE medicamento_id = ? AND deleted_at IS NULL AND cantidad IS NOT NULL`,
+      [unidades, new Date().toISOString(), medicamentoId],
+    );
+  },
+
+  /** Medicamentos cuyas existencias llegaron al umbral de aviso. */
+  async getMedicamentosPorAgotarse(usuarioId: string): Promise<any[]> {
+    const database = await this.getDB();
+    return database.getAllAsync(
+      `SELECT m.id, m.nombre, i.cantidad, i.umbral_aviso
+         FROM inventario i
+         JOIN medicamentos m ON m.id = i.medicamento_id
+        WHERE i.usuario_id = ? AND i.deleted_at IS NULL AND m.deleted_at IS NULL
+          AND i.cantidad IS NOT NULL
+          AND i.cantidad <= COALESCE(i.umbral_aviso, 5)
+        ORDER BY i.cantidad ASC`,
+      [usuarioId],
+    );
+  },
+
+  /**
+   * Historial de tomas de los últimos N días.
+   *
+   * Se lee de `alarmas` y no de `tomas` a propósito: `tomas` solo guarda las
+   * dosis confirmadas, así que por sí sola no permite ver las omitidas.
+   * `alarmas` tiene fecha, hora, medicamento y el estado de cada dosis.
+   * Se excluye el futuro: una dosis que aún no toca no es "omitida".
+   */
+  async getHistorialTomas(usuarioId: string, dias = 30): Promise<any[]> {
+    const database = await this.getDB();
+    const hoy = localDateKey(new Date());
+    const desde = localDateKey(addLocalDays(new Date(), -(dias - 1)));
+
+    return database.getAllAsync(
+      `SELECT id, fecha, hora_toma, medicamento_nombre, dosis, tomado
+         FROM alarmas
+        WHERE usuario_id = ? AND deleted_at IS NULL
+          AND fecha >= ? AND fecha <= ?
+        ORDER BY fecha DESC, hora_toma ASC`,
+      [usuarioId, desde, hoy],
+    );
   },
 
   /**

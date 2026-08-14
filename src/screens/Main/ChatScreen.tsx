@@ -10,12 +10,28 @@ import {
   Text,
   ScrollView,
   Modal,
+  Image,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Speech from 'expo-speech';
+import {
+  ExpoSpeechRecognitionModule,
+  useSpeechRecognitionEvent,
+} from 'expo-speech-recognition';
 import { MaterialIcons } from '@expo/vector-icons';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 import { useSelector } from 'react-redux';
 import chatService from '../../services/chatService';
 import { useDarkMode } from '../../hooks/useDarkMode';
+import { ScreenBackground } from '../../components/ui/ScreenBackground';
+import { useTabBarClearance } from '../../utils/layout';
 import { DesignSystem as DS } from '../../theme/designSystem';
 import { RootState } from '../../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -25,6 +41,17 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   hora: string;
+}
+
+const LECTURA_KEY = '@myvita:leer_respuestas';
+
+/** Quita el marcado (**negritas**, listas) para que la voz no lea símbolos. */
+function limpiarParaVoz(texto: string): string {
+  return texto
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/[*_#`]/g, '')
+    .replace(/^\s*[-•]\s*/gm, '')
+    .trim();
 }
 
 const SUGERENCIAS = [
@@ -46,7 +73,125 @@ function ChatScreen({ navigation }: any) {
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
   const [aiConsent, setAiConsent] = useState<boolean | null>(null);
+  // Lectura en voz alta (accesibilidad para adultos mayores)
+  const [leerAuto, setLeerAuto] = useState(true);
+  const [hablandoId, setHablandoId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem(LECTURA_KEY)
+      .then((value) => setLeerAuto(value !== 'off'))
+      .catch(() => {});
+  }, []);
+
+  // Detener la voz al salir de la pantalla
+  useEffect(() => () => {
+    Speech.stop();
+  }, []);
+
+  const detenerVoz = useCallback(() => {
+    Speech.stop();
+    setHablandoId(null);
+  }, []);
+
+  const hablar = useCallback((id: string, texto: string) => {
+    Speech.stop();
+    setHablandoId(id);
+    Speech.speak(limpiarParaVoz(texto), {
+      language: 'es-MX',
+      rate: 0.92, // un poco más lento, se entiende mejor
+      onDone: () => setHablandoId(null),
+      onStopped: () => setHablandoId(null),
+      onError: () => setHablandoId(null),
+    });
+  }, []);
+
+  /** Alterna entre leer y detener el mensaje tocado. */
+  const alternarVoz = useCallback(
+    (id: string, texto: string) => {
+      if (hablandoId === id) detenerVoz();
+      else hablar(id, texto);
+    },
+    [hablandoId, detenerVoz, hablar],
+  );
+
+  // ── Dictado por voz ───────────────────────────────────────────────────────
+  const [escuchando, setEscuchando] = useState(false);
+
+  useSpeechRecognitionEvent('result', (event) => {
+    const transcripcion = event.results?.[0]?.transcript;
+    if (transcripcion) setInput(transcripcion);
+  });
+  useSpeechRecognitionEvent('end', () => setEscuchando(false));
+  useSpeechRecognitionEvent('error', () => {
+    setEscuchando(false);
+  });
+
+  // Si se sale de la pantalla mientras dicta, cortar el micrófono.
+  useEffect(() => () => {
+    ExpoSpeechRecognitionModule.abort();
+  }, []);
+
+  const alternarDictado = useCallback(async () => {
+    if (escuchando) {
+      ExpoSpeechRecognitionModule.stop();
+      return;
+    }
+
+    const permiso = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+    if (!permiso.granted) {
+      Alert.alert(
+        'Permiso del micrófono',
+        'Para dictar tu pregunta necesito permiso para usar el micrófono. Puedes activarlo en los ajustes del teléfono.',
+      );
+      return;
+    }
+
+    // Callar al lector: si está hablando, el micrófono se oiría a sí mismo.
+    Speech.stop();
+    setHablandoId(null);
+
+    setEscuchando(true);
+    ExpoSpeechRecognitionModule.start({
+      lang: 'es-MX',
+      interimResults: true, // el texto aparece mientras habla
+      continuous: false, // se detiene solo al callar
+    });
+  }, [escuchando]);
+
+  const alternarLecturaAuto = useCallback(() => {
+    setLeerAuto((prev) => {
+      const siguiente = !prev;
+      AsyncStorage.setItem(LECTURA_KEY, siguiente ? 'on' : 'off').catch(() => {});
+      if (!siguiente) {
+        Speech.stop();
+        setHablandoId(null);
+      }
+      return siguiente;
+    });
+  }, []);
+
+  // Botón de encabezado para activar/desactivar la lectura automática
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={alternarLecturaAuto}
+          style={styles.headerVoiceButton}
+          accessibilityRole="button"
+          accessibilityLabel={
+            leerAuto ? 'Desactivar lectura en voz alta' : 'Activar lectura en voz alta'
+          }
+        >
+          <MaterialIcons
+            name={leerAuto ? 'volume-up' : 'volume-off'}
+            size={28}
+            color={leerAuto ? DS.colors.primary : DS.colors.subtle}
+          />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, leerAuto, alternarLecturaAuto]);
 
   useEffect(() => {
     if (!userId) return;
@@ -89,15 +234,17 @@ function ChatScreen({ navigation }: any) {
 
       try {
         const respuesta = await chatService.enviarMensaje(userId, mensaje);
+        const id = `a_${Date.now()}`;
         setMessages((prev) => [
           ...prev,
-          { id: `a_${Date.now()}`, role: 'assistant', content: respuesta, hora: horaActual() },
+          { id, role: 'assistant', content: respuesta, hora: horaActual() },
         ]);
+        if (leerAuto) hablar(id, respuesta);
       } finally {
         setTyping(false);
       }
     },
-    [userId, typing],
+    [userId, typing, leerAuto, hablar],
   );
 
   useEffect(() => {
@@ -105,22 +252,39 @@ function ChatScreen({ navigation }: any) {
     return () => clearTimeout(t);
   }, [messages, typing]);
 
+  // Espacio que ocupa la barra flotante: el input se apoya justo encima.
+  const tabBarClearance = useTabBarClearance();
   const bg = isDark ? DS.colors.surfaceDark : DS.colors.surface;
   const cardBg = isDark ? DS.colors.cardDark : DS.colors.card;
   const textColor = isDark ? DS.colors.textDark : DS.colors.text;
+
+  // Glow decorativo pulsante detrás del avatar del asistente (puramente visual)
+  const pulse = useSharedValue(0);
+  useEffect(() => {
+    pulse.value = withRepeat(
+      withTiming(1, { duration: 1600, easing: Easing.out(Easing.ease) }),
+      -1,
+      false,
+    );
+  }, [pulse]);
+  const pulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 + pulse.value * 0.25 }],
+    opacity: (1 - pulse.value) * 0.4,
+  }));
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isUser = item.role === 'user';
     return (
       <View style={[styles.messageRow, isUser ? styles.rowUser : styles.rowAssistant]}>
         {!isUser && (
-          <LinearGradient colors={DS.statGradients.signature} style={styles.avatar}>
-            <MaterialIcons name="smart-toy" size={16} color="#fff" />
-          </LinearGradient>
+          <Image
+            source={require('../../../assets/images/robot-assistant-badge.png')}
+            style={styles.avatar}
+          />
         )}
         {isUser ? (
           <LinearGradient
-            colors={DS.statGradients.signature}
+            colors={DS.sectionGradients.chat}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[styles.bubble, styles.bubbleUser]}
@@ -131,7 +295,27 @@ function ChatScreen({ navigation }: any) {
         ) : (
           <View style={[styles.bubble, styles.bubbleAssistant, { backgroundColor: cardBg }]}>
             <Text style={[styles.textAssistant, { color: textColor }]}>{item.content}</Text>
-            {!!item.hora && <Text style={styles.horaAssistant}>{item.hora}</Text>}
+            <View style={styles.assistantFooter}>
+              {!!item.hora && <Text style={styles.horaAssistant}>{item.hora}</Text>}
+              <TouchableOpacity
+                onPress={() => alternarVoz(item.id, item.content)}
+                style={styles.voiceButton}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  hablandoId === item.id ? 'Detener lectura' : 'Escuchar este mensaje'
+                }
+              >
+                <MaterialIcons
+                  name={hablandoId === item.id ? 'stop-circle' : 'volume-up'}
+                  size={22}
+                  color={hablandoId === item.id ? DS.colors.error : DS.colors.primary}
+                />
+                <Text style={styles.voiceButtonText}>
+                  {hablandoId === item.id ? 'Detener' : 'Escuchar'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </View>
@@ -139,9 +323,10 @@ function ChatScreen({ navigation }: any) {
   };
 
   return (
+    <ScreenBackground isDark={isDark}>
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={[styles.container, { backgroundColor: bg }]}
+      style={styles.container}
     >
       <View style={[styles.safetyBanner, { backgroundColor: isDark ? '#312f1f' : '#fff4df' }]}>
         <MaterialIcons name="info-outline" size={18} color={DS.colors.warning} />
@@ -150,9 +335,14 @@ function ChatScreen({ navigation }: any) {
 
       {messages.length === 0 && !typing ? (
         <ScrollView contentContainerStyle={styles.welcomeContainer}>
-          <LinearGradient colors={DS.statGradients.signature} style={styles.welcomeIcon}>
-            <MaterialIcons name="smart-toy" size={40} color="#fff" />
-          </LinearGradient>
+          <View style={styles.welcomeIconWrap}>
+            <Animated.View pointerEvents="none" style={[styles.welcomeIconGlow, pulseStyle]} />
+            <Image
+              source={require('../../../assets/images/robot-asistente-full.png')}
+              style={styles.welcomeIcon}
+              resizeMode="contain"
+            />
+          </View>
           <Text style={[styles.welcomeTitle, { color: textColor }]}>Asistente Médico</Text>
           <Text style={[styles.welcomeSubtitle, { color: isDark ? DS.colors.mutedDark : DS.colors.muted }]}>
             Conozco tus medicamentos, tomas y adherencia. Pregúntame lo que necesites 💊
@@ -179,9 +369,10 @@ function ChatScreen({ navigation }: any) {
           ListFooterComponent={
             typing ? (
               <View style={[styles.messageRow, styles.rowAssistant]}>
-                <LinearGradient colors={DS.statGradients.signature} style={styles.avatar}>
-                  <MaterialIcons name="smart-toy" size={16} color="#fff" />
-                </LinearGradient>
+                <Image
+                  source={require('../../../assets/images/robot-assistant-badge.png')}
+                  style={styles.avatar}
+                />
                 <View style={[styles.bubble, styles.bubbleAssistant, { backgroundColor: cardBg }]}>
                   <Text style={styles.typingText}>Escribiendo…</Text>
                 </View>
@@ -191,16 +382,43 @@ function ChatScreen({ navigation }: any) {
         />
       )}
 
-      <View style={[styles.inputBar, { backgroundColor: cardBg }]}>
+      <View
+        style={[
+          styles.inputBar,
+          { backgroundColor: cardBg, paddingBottom: tabBarClearance },
+        ]}
+      >
         <TextInput
           style={[styles.input, { color: textColor, backgroundColor: bg }]}
-          placeholder="Escribe tu pregunta…"
-          placeholderTextColor={DS.colors.subtle}
+          placeholder={escuchando ? 'Escuchando… habla ahora' : 'Escribe tu pregunta…'}
+          placeholderTextColor={escuchando ? DS.colors.error : DS.colors.subtle}
           value={input}
           onChangeText={setInput}
           editable={!typing && aiConsent === true}
           multiline
         />
+        <TouchableOpacity
+          onPress={alternarDictado}
+          disabled={typing || aiConsent !== true}
+          style={[
+            styles.micButton,
+            {
+              backgroundColor: escuchando
+                ? DS.colors.error
+                : isDark
+                  ? DS.colors.surfaceContainerDark
+                  : DS.colors.surfaceContainer,
+            },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={escuchando ? 'Detener dictado' : 'Dictar pregunta por voz'}
+        >
+          <MaterialIcons
+            name={escuchando ? 'stop' : 'mic'}
+            size={24}
+            color={escuchando ? '#fff' : DS.colors.primary}
+          />
+        </TouchableOpacity>
         <TouchableOpacity
           onPress={() => enviar(input)}
           disabled={typing || !input.trim()}
@@ -210,7 +428,7 @@ function ChatScreen({ navigation }: any) {
             colors={
               typing || !input.trim()
                 ? [DS.colors.gray[300], DS.colors.gray[400]]
-                : DS.statGradients.signature
+                : DS.sectionGradients.chat
             }
             style={styles.sendButton}
           >
@@ -219,7 +437,7 @@ function ChatScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      <Modal visible={aiConsent === false} transparent animationType="fade" onRequestClose={() => navigation.goBack()}>
+      <Modal visible={aiConsent === false} transparent animationType="fade" onRequestClose={() => navigation.navigate('DashboardTab')}>
         <View style={styles.consentOverlay}>
           <View style={[styles.consentCard, { backgroundColor: cardBg }]}>
             <View style={styles.consentIcon}>
@@ -233,16 +451,20 @@ function ChatScreen({ navigation }: any) {
             <TouchableOpacity style={styles.consentPrimary} onPress={acceptAI}>
               <Text style={styles.consentPrimaryText}>Entiendo y deseo continuar</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.consentSecondary} onPress={() => navigation.navigate('Privacy')}>
+            <TouchableOpacity
+              style={styles.consentSecondary}
+              onPress={() => navigation.navigate('MoreTab', { screen: 'Privacy' })}
+            >
               <Text style={styles.consentSecondaryText}>Ver aviso de privacidad</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.consentCancel} onPress={() => navigation.goBack()}>
+            <TouchableOpacity style={styles.consentCancel} onPress={() => navigation.navigate('DashboardTab')}>
               <Text style={[styles.consentCancelText, { color: isDark ? DS.colors.mutedDark : DS.colors.muted }]}>No usar el asistente</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
     </KeyboardAvoidingView>
+    </ScreenBackground>
   );
 }
 
@@ -270,14 +492,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
   },
-  welcomeIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
+  welcomeIconWrap: {
+    width: 240,
+    height: 240,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
-    ...DS.shadows.lg,
+    marginBottom: 12,
+  },
+  welcomeIconGlow: {
+    position: 'absolute',
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: DS.colors.accent,
+  },
+  welcomeIcon: {
+    width: 220,
+    height: 220,
   },
   welcomeTitle: {
     fontSize: 22,
@@ -367,6 +598,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
+  assistantFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 2,
+  },
+  voiceButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 4,
+  },
+  voiceButtonText: {
+    fontSize: 14,
+    fontFamily: DS.fonts.semibold,
+    color: DS.colors.primary,
+  },
+  headerVoiceButton: {
+    marginRight: 16,
+    padding: 4,
+  },
   typingText: {
     fontSize: 16,
     color: DS.colors.muted,
@@ -391,6 +644,13 @@ const styles = StyleSheet.create({
     fontFamily: DS.fonts.regular,
   },
   sendButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  micButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
