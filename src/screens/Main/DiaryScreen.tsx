@@ -7,6 +7,8 @@ import {
   TextInput,
   ScrollView,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -15,6 +17,7 @@ import databaseService from '../../services/database';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { GradientButton } from '../../components/ui/GradientButton';
 import { ScreenBackground } from '../../components/ui/ScreenBackground';
+import { SectionHero } from '../../components/ui/SectionHero';
 import { FloatingIcon } from '../../components/ui/FloatingIcon';
 import { DesignSystem as DS } from '../../theme/designSystem';
 import { RootState } from '../../types';
@@ -107,18 +110,16 @@ function DiaryScreen() {
 
   return (
     <ScreenBackground isDark={isDark}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
     >
+      <SectionHero title="Tu bienestar diario" subtitle="Anota cómo te sientes y reconoce tu progreso." image={require('../../../assets/images/section-diary.png')} isDark={isDark} />
       <View style={styles.headerRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.screenTitle, { color: textColor }]}>Mi Diario</Text>
-          <Text style={[styles.screenSubtitle, { color: mutedColor }]}>
-            Registra cómo te sientes para llevar un mejor control de tu salud.
-          </Text>
-        </View>
+        <Text style={[styles.sectionLabel, { color: textColor }]}>Registro de hoy</Text>
         <View style={[styles.dateBadge, { backgroundColor: cardBg, borderColor }]}>
           <MaterialIcons name="calendar-today" size={14} color={DS.colors.primary} />
           <Text style={[styles.dateBadgeText, { color: textColor }]}>
@@ -192,7 +193,7 @@ function DiaryScreen() {
         onPress={handleSave}
         loading={saving}
         style={styles.saveBtn}
-        gradientColors={['#FACC15', '#F97316']}
+        gradientColors={DS.statGradients.signature}
       />
 
       {/* Entradas recientes */}
@@ -228,6 +229,7 @@ function DiaryScreen() {
         </>
       )}
     </ScrollView>
+    </KeyboardAvoidingView>
     </ScreenBackground>
   );
 }

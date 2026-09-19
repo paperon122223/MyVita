@@ -21,8 +21,10 @@ import { useSelector } from 'react-redux';
 import { useMedicamentos } from '../../hooks/useDatabase';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import databaseService from '../../services/database';
+import fotoMedicamentoService from '../../services/fotoMedicamentoService';
 import { GradientButton } from '../../components/ui/GradientButton';
 import { ScreenBackground } from '../../components/ui/ScreenBackground';
+import { SectionHero } from '../../components/ui/SectionHero';
 import { TAB_BAR_HEIGHT } from '../../utils/layout';
 import { DesignSystem as DS } from '../../theme/designSystem';
 import { RootState } from '../../types';
@@ -46,6 +48,7 @@ function MedicationsScreen() {
   const [unidad, setUnidad] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [existencias, setExistencias] = useState('');
+  const [fotoUri, setFotoUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   // Existencias por medicamento_id (vacío = sin control de inventario)
@@ -82,6 +85,30 @@ function MedicationsScreen() {
     setUnidad('');
     setDescripcion('');
     setExistencias('');
+    setFotoUri(null);
+  }, []);
+
+  const elegirFoto = useCallback(() => {
+    const manejar = async (accion: () => Promise<string | null>) => {
+      try {
+        const uri = await accion();
+        if (uri) setFotoUri(uri);
+      } catch (error: any) {
+        const mensaje =
+          error?.message === 'sin-permiso-camara'
+            ? 'Necesito permiso para usar la cámara. Puedes activarlo en los ajustes del teléfono.'
+            : error?.message === 'sin-permiso-galeria'
+              ? 'Necesito permiso para ver tus fotos. Puedes activarlo en los ajustes del teléfono.'
+              : 'No se pudo guardar la foto.';
+        Alert.alert('Foto', mensaje);
+      }
+    };
+
+    Alert.alert('Foto del medicamento', '¿De dónde quieres tomarla?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Cámara', onPress: () => manejar(() => fotoMedicamentoService.tomarFoto()) },
+      { text: 'Galería', onPress: () => manejar(() => fotoMedicamentoService.elegirDeGaleria()) },
+    ]);
   }, []);
 
   const abrirNuevo = useCallback(() => {
@@ -97,6 +124,7 @@ function MedicationsScreen() {
     setDescripcion(med.descripcion ?? '');
     const stock = inventario[med.id]?.cantidad;
     setExistencias(stock === null || stock === undefined ? '' : String(stock));
+    setFotoUri(med.foto_uri ?? null);
     setModalVisible(true);
   }, [inventario]);
 
@@ -119,6 +147,7 @@ function MedicationsScreen() {
           dosis: dosis.trim(),
           unidad: unidad.trim(),
           descripcion: descripcion.trim(),
+          fotoUri,
         });
       } else {
         medicamentoId = await databaseService.crearMedicamento({
@@ -127,6 +156,7 @@ function MedicationsScreen() {
           dosis: dosis.trim() || null,
           unidad: unidad.trim() || null,
           descripcion: descripcion.trim() || null,
+          fotoUri,
         });
       }
 
@@ -185,6 +215,8 @@ function MedicationsScreen() {
             onPress: async () => {
               try {
                 await databaseService.eliminarMedicamento(med.id);
+                // Sin esto la foto quedaría huérfana ocupando espacio.
+                await fotoMedicamentoService.borrar(med.foto_uri);
                 await refetch();
               } catch (e) {
                 Alert.alert('Error', 'No se pudo borrar el medicamento.');
@@ -208,8 +240,12 @@ function MedicationsScreen() {
     const stockBajo = stock !== null && stock <= (registro?.umbral_aviso ?? 5);
     return (
       <View style={[styles.medCard, { backgroundColor: cardBg }]}>
-        <View style={[styles.medIcon, { backgroundColor: tile.bg }]}>
-          <Image source={require('../../../assets/images/pildora.png')} style={styles.medIconImage} resizeMode="contain" />
+        <View style={[styles.medIcon, { backgroundColor: isDark ? DS.colors.surfaceContainerDark : tile.bg }]}>
+          {item.foto_uri ? (
+            <Image source={{ uri: item.foto_uri }} style={styles.medFoto} resizeMode="cover" />
+          ) : (
+            <Image source={require('../../../assets/images/pildora.png')} style={styles.medIconImage} resizeMode="contain" />
+          )}
         </View>
         <View style={styles.medInfo}>
           <Text style={[styles.medName, { color: textColor }]} numberOfLines={1}>
@@ -313,7 +349,7 @@ function MedicationsScreen() {
         renderItem={renderMedication}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
-        ListHeaderComponent={(medications && medications.length > 0) ? SearchHeader : null}
+        ListHeaderComponent={<><SectionHero title="Tus medicinas" subtitle="Organiza tus tratamientos en un solo lugar." image={require('../../../assets/images/section-medicine.png')} isDark={isDark} />{(medications && medications.length > 0) ? SearchHeader : null}</>}
         ListEmptyComponent={
           busqueda.length > 0 ? (
             <View style={styles.emptyContainer}>
@@ -324,19 +360,17 @@ function MedicationsScreen() {
             </View>
           ) : (
             <View style={styles.emptyContainer}>
-              <LinearGradient colors={medGradient} style={styles.emptyIcon}>
-                <Image source={require('../../../assets/images/pildora.png')} style={styles.emptyIconImage} resizeMode="contain" />
-              </LinearGradient>
               <Text style={[styles.emptyTitle, { color: textColor }]}>Sin medicamentos</Text>
               <Text style={[styles.emptyText, { color: mutedColor }]}>
                 Agrega tus medicamentos para llevar el control de tus tomas
               </Text>
+              <GradientButton label="Agregar medicamento" icon="add" onPress={abrirNuevo} style={{ marginTop: 16 }} />
             </View>
           )
         }
       />
 
-      <TouchableOpacity
+      {(medications && medications.length > 0) && <TouchableOpacity
         style={[styles.fab, { bottom: fabBottom }]}
         onPress={abrirNuevo}
         accessibilityLabel="Agregar medicamento"
@@ -345,7 +379,7 @@ function MedicationsScreen() {
           <MaterialIcons name="add" size={26} color="#fff" />
           <Text style={styles.fabText}>Agregar</Text>
         </LinearGradient>
-      </TouchableOpacity>
+      </TouchableOpacity>}
 
       <Modal visible={modalVisible} transparent animationType="slide">
         <KeyboardAvoidingView
@@ -363,6 +397,36 @@ function MedicationsScreen() {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <Text style={styles.fieldLabel}>FOTO (OPCIONAL)</Text>
+            <View style={styles.fotoRow}>
+              <TouchableOpacity
+                onPress={elegirFoto}
+                style={[
+                  styles.fotoPreview,
+                  { backgroundColor: bg, borderColor: isDark ? DS.colors.borderDark : DS.colors.border },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Agregar foto del medicamento"
+              >
+                {fotoUri ? (
+                  <Image source={{ uri: fotoUri }} style={styles.fotoPreviewImg} resizeMode="cover" />
+                ) : (
+                  <MaterialIcons name="add-a-photo" size={30} color={DS.colors.subtle} />
+                )}
+              </TouchableOpacity>
+              <View style={styles.fotoTexto}>
+                <Text style={[styles.fieldHint, { color: mutedColor, marginTop: 0 }]}>
+                  Una foto ayuda a reconocer la pastilla por su color y forma, sin depender
+                  de leer el nombre.
+                </Text>
+                {!!fotoUri && (
+                  <TouchableOpacity onPress={() => setFotoUri(null)} hitSlop={8}>
+                    <Text style={[styles.fotoQuitar, { color: DS.colors.error }]}>Quitar foto</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
             <Text style={styles.fieldLabel}>NOMBRE *</Text>
             <TextInput
               style={[styles.modalInput, { color: textColor, backgroundColor: bg, borderColor: isDark ? DS.colors.borderDark : DS.colors.border }]}
@@ -502,6 +566,38 @@ const styles = StyleSheet.create({
   medNote: {
     fontSize: 14,
     fontFamily: DS.fonts.regular,
+  },
+  medFoto: {
+    width: '100%',
+    height: '100%',
+    borderRadius: DS.borderRadius.md,
+  },
+  fotoRow: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  fotoPreview: {
+    width: 82,
+    height: 82,
+    borderRadius: DS.borderRadius.lg,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  fotoPreviewImg: {
+    width: '100%',
+    height: '100%',
+  },
+  fotoTexto: {
+    flex: 1,
+  },
+  fotoQuitar: {
+    fontSize: 13,
+    fontFamily: DS.fonts.bold,
+    marginTop: 4,
   },
   stockRow: {
     flexDirection: 'row',

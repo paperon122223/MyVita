@@ -1,4 +1,5 @@
 import React from 'react';
+import { useDarkMode } from '../../hooks/useDarkMode';
 import { Text, StyleSheet, ActivityIndicator, ViewStyle, Pressable, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -22,6 +23,8 @@ interface GradientButtonProps {
 }
 
 export function GradientButton({ label, onPress, disabled, loading, style, icon, gradientColors }: GradientButtonProps) {
+  const { isDark } = useDarkMode();
+  const labelColor = disabled ? (isDark ? DesignSystem.colors.textDark : DesignSystem.colors.text) : '#fff';
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -44,28 +47,26 @@ export function GradientButton({ label, onPress, disabled, loading, style, icon,
       }}
       disabled={disabled || loading}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={loading ? `${label}. En proceso` : label}
+      accessibilityState={{ disabled: !!(disabled || loading), busy: !!loading }}
       style={style}
     >
       <Animated.View style={animatedStyle}>
         <LinearGradient
           colors={
             disabled
-              ? [DesignSystem.colors.gray[300], DesignSystem.colors.gray[400]]
+              ? isDark ? ['#334155', '#334155'] : ['#D7E1EF', '#D7E1EF']
               : gradientColors ?? DesignSystem.statGradients.signature
           }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradient}
         >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <View style={styles.row}>
-              <Text style={styles.label}>{label}</Text>
-              {icon && <MaterialIcons name={icon} size={22} color="#fff" />}
-            </View>
-          )}
+          <View style={styles.row}>
+            {loading && <ActivityIndicator color={labelColor} />}
+            <Text style={[styles.label, { color: labelColor }]}>{label}</Text>
+            {icon && !loading && <MaterialIcons name={icon} size={22} color={labelColor} />}
+          </View>
         </LinearGradient>
       </Animated.View>
     </Pressable>
@@ -76,12 +77,13 @@ const styles = StyleSheet.create({
   gradient: {
     borderRadius: DesignSystem.borderRadius.full,
     paddingVertical: 19,
+    paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 62,
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.35)',
-    ...DesignSystem.shadows.glowBlue,
+    ...DesignSystem.shadows.sm,
   },
   row: {
     flexDirection: 'row',
@@ -90,6 +92,8 @@ const styles = StyleSheet.create({
   },
   label: {
     color: '#fff',
+    flexShrink: 1,
+    textAlign: 'center',
     fontSize: 19,
     letterSpacing: 0.3,
     fontFamily: DesignSystem.fonts.bold,

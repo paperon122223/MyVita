@@ -139,10 +139,10 @@ function RegisterScreen({ navigation }: any) {
   return (
     <ScreenBackground isDark={isDark}>
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View style={styles.headerContainer}>
           <Image
             source={require('../../../assets/images/logo-myvita-register.png')}

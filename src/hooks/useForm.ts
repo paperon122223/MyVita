@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 interface UseFormOptions<T> {
   initialValues: T;
@@ -29,6 +29,7 @@ export const useForm = <T extends Record<string, any>>({
   const [values, setValues] = useState<T>(initialValues);
   const [errors, setErrors] = useState<Partial<Record<keyof T, string | undefined>>>({});
   const [touched, setTouched] = useState<Partial<Record<keyof T, boolean>>>({});
+  const submitting = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -68,6 +69,8 @@ export const useForm = <T extends Record<string, any>>({
   }, [values, validate]);
 
   const handleSubmit = useCallback(async () => {
+    if (submitting.current) return;
+    submitting.current = true;
     try {
       setIsSubmitting(true);
       setSubmitError(null);
@@ -85,6 +88,7 @@ export const useForm = <T extends Record<string, any>>({
       // Validate form
       if (validate) {
         const validationErrors = validate(values);
+        setErrors(validationErrors);
         const hasErrors = Object.values(validationErrors).some((error) => error !== undefined);
         if (hasErrors) {
           setErrors(validationErrors);
@@ -95,9 +99,10 @@ export const useForm = <T extends Record<string, any>>({
       // Submit
       await onSubmit(values);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Form submission failed';
+      const message = error instanceof Error ? error.message : 'No se pudo guardar. Intenta de nuevo.';
       setSubmitError(message);
     } finally {
+      submitting.current = false;
       setIsSubmitting(false);
     }
   }, [values, initialValues, validate, onSubmit]);

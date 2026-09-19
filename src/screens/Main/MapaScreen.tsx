@@ -25,6 +25,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { ScreenBackground } from '../../components/ui/ScreenBackground';
+import { SectionHero } from '../../components/ui/SectionHero';
 import { DesignSystem as DS } from '../../theme/designSystem';
 import { API_BASE_URL } from '../../utils/constants';
 
@@ -149,13 +150,12 @@ function MapaScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <LinearGradient colors={DS.sectionGradients.mapa as any} style={styles.header}>
-        <MaterialIcons name="location-on" size={38} color="#fff" />
-        <Text style={styles.headerTitle}>Mi Ubicación</Text>
-        <Text style={styles.headerSub}>
+      <SectionHero title="Siempre ubicable" subtitle="Comparte tu ubicación cuando la necesites." image={require('../../../assets/images/section-location.png')} isDark={isDark} />
+      <View style={[styles.card, { backgroundColor: cardBg }]}>
+        <Text style={[styles.msgText, { color: mutedColor }]}>
           {location ? `Actualizada a las ${formatHora(location.timestamp)}` : 'Obteniendo tu posición…'}
         </Text>
-      </LinearGradient>
+      </View>
 
       {loading && (
         <View style={[styles.card, { backgroundColor: cardBg }]}>
@@ -250,12 +250,12 @@ function MapaScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.outlineBtn} onPress={compartirUbicacion} activeOpacity={0.85}>
+          <TouchableOpacity style={[styles.outlineBtn, { borderColor: isDark ? DS.colors.borderDark : DS.colors.border, backgroundColor: cardBg }]} onPress={compartirUbicacion} activeOpacity={0.85}>
             <MaterialIcons name="share" size={22} color={DS.colors.primary} />
             <Text style={[styles.outlineLabel, { color: DS.colors.primary }]}>Compartir ubicación</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.outlineBtn} onPress={obtenerUbicacion} activeOpacity={0.85}>
+          <TouchableOpacity style={[styles.outlineBtn, { borderColor: isDark ? DS.colors.borderDark : DS.colors.border, backgroundColor: cardBg }]} onPress={obtenerUbicacion} activeOpacity={0.85}>
             <MaterialIcons name="refresh" size={22} color={mutedColor} />
             <Text style={[styles.outlineLabel, { color: mutedColor }]}>Actualizar posición</Text>
           </TouchableOpacity>

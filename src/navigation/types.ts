@@ -45,6 +45,7 @@ export type SettingsStackParamList = {
 // Pantallas secundarias, agrupadas bajo la pestaña "Más"
 export type MoreStackParamList = {
   MoreMenu: undefined;
+  Chat: undefined;
   Historial: undefined;
   Diary: undefined;
   Mapa: undefined;
@@ -60,7 +61,6 @@ export type MainTabParamList = {
   MedicationsTab: undefined;
   SOSTab: undefined;
   AlarmsTab: undefined;
-  ChatTab: undefined;
   MoreTab: NavigatorScreenParams<MoreStackParamList> | undefined;
 };
 

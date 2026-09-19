@@ -19,6 +19,8 @@ import {
   TextInput,
   Alert,
   Share,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -26,6 +28,7 @@ import { useSelector } from 'react-redux';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import apiService from '../../services/apiService';
 import { ScreenBackground } from '../../components/ui/ScreenBackground';
+import { SectionHero } from '../../components/ui/SectionHero';
 import { DesignSystem as DS } from '../../theme/designSystem';
 import { RootState } from '../../types';
 
@@ -336,13 +339,7 @@ function CuidadorScreen() {
         />
       }
     >
-      <LinearGradient colors={DS.sectionGradients.cuidador} style={styles.header}>
-        <View style={styles.headerIconWrap}>
-          <MaterialIcons name="supervisor-account" size={34} color="#fff" />
-        </View>
-        <Text style={styles.headerTitle}>Modo Cuidador</Text>
-        <Text style={styles.headerSub}>Monitorea el bienestar de tus pacientes</Text>
-      </LinearGradient>
+      <SectionHero title="Acompañados es mejor" subtitle="Mantén cerca a las personas que te cuidan." image={require('../../../assets/images/section-caregiver.png')} isDark={isDark} />
 
       {/* Generar mi código (para que me monitoreen a mí) */}
       <TouchableOpacity
@@ -424,7 +421,7 @@ function CuidadorScreen() {
 
       {/* ── Modal: ingresar código (cuidador) ── */}
       <Modal visible={modalVincular} transparent animationType="slide" onRequestClose={() => setModalVincular(false)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={[styles.modalCard, { backgroundColor: cardBg }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitulo, { color: textColor }]}>Vincular paciente</Text>
@@ -468,7 +465,7 @@ function CuidadorScreen() {
               </LinearGradient>
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── Modal: mostrar mi código (paciente) ── */}

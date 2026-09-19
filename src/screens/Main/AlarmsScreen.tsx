@@ -11,6 +11,7 @@ import {
   Alert,
   Platform,
   ScrollView,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -23,6 +24,7 @@ import { useDarkMode } from '../../hooks/useDarkMode';
 import { GradientButton } from '../../components/ui/GradientButton';
 import { AdherenceRing } from '../../components/ui/AdherenceRing';
 import { ScreenBackground } from '../../components/ui/ScreenBackground';
+import { SectionHero } from '../../components/ui/SectionHero';
 import systemAlarmService from '../../services/systemAlarmService';
 import { DesignSystem as DS } from '../../theme/designSystem';
 import { RootState, Alarma, FrecuenciaAlarma } from '../../types';
@@ -190,10 +192,10 @@ function AlarmsScreen() {
     // Color del acento/badge según estado
     const accent = tomada ? DS.colors.secondary : silenciada ? DS.colors.subtle : DS.colors.primary;
     const badgeBg = tomada
-      ? DS.statContainers.green.bg
+      ? (isDark ? 'rgba(43,216,74,0.16)' : DS.statContainers.green.bg)
       : silenciada
         ? (isDark ? DS.colors.surfaceContainerDark : DS.colors.surfaceContainer)
-        : DS.statContainers.blue.bg;
+        : (isDark ? 'rgba(0,123,255,0.18)' : DS.statContainers.blue.bg);
 
     return (
       <Animated.View
@@ -218,17 +220,17 @@ function AlarmsScreen() {
                 {item.medicamentoNombre || 'Medicamento'}
               </Text>
               {tomada ? (
-                <View style={[styles.statusChip, styles.chipTaken]}>
+                <View style={[styles.statusChip, styles.chipTaken, isDark && { backgroundColor: 'rgba(43,216,74,0.16)' }]}>
                   <MaterialIcons name="check-circle" size={13} color={DS.colors.secondary} />
                   <Text style={styles.chipTakenText}>Tomado</Text>
                 </View>
               ) : silenciada ? (
-                <View style={[styles.statusChip, styles.chipMuted]}>
+                <View style={[styles.statusChip, styles.chipMuted, isDark && { backgroundColor: DS.colors.surfaceContainerDark }]}>
                   <MaterialIcons name="notifications-off" size={13} color={DS.colors.subtle} />
                   <Text style={styles.chipMutedText}>Silenciado</Text>
                 </View>
               ) : (
-                <View style={[styles.statusChip, styles.chipPending]}>
+                <View style={[styles.statusChip, styles.chipPending, isDark && { backgroundColor: 'rgba(245,158,11,0.16)' }]}>
                   <Text style={styles.chipPendingText}>Pendiente</Text>
                 </View>
               )}
@@ -332,22 +334,20 @@ function AlarmsScreen() {
         renderItem={renderAlarm}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
-        ListHeaderComponent={ProgressHeader}
+        ListHeaderComponent={<><SectionHero title="Tomas a tiempo" subtitle="Cada recordatorio te acerca a tu meta." image={require('../../../assets/images/section-alarms.png')} isDark={isDark} />{ProgressHeader}</>}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <LinearGradient colors={DS.sectionGradients.alarmas} style={styles.emptyIcon}>
-              <MaterialIcons name="alarm-add" size={36} color="#fff" />
-            </LinearGradient>
             <Text style={[styles.emptyTitle, { color: textColor }]}>Sin alarmas hoy</Text>
             <Text style={[styles.emptyText, { color: mutedColor }]}>
               Crea tu primera alarma para no olvidar ninguna toma
             </Text>
+            <GradientButton label="Crear alarma" icon="add" onPress={() => setModalVisible(true)} style={{ marginTop: 16 }} />
           </View>
         }
       />
 
       {/* FAB con gradiente */}
-      <TouchableOpacity
+      {alarms.length > 0 && <TouchableOpacity
         style={styles.fab}
         onPress={() => setModalVisible(true)}
         accessibilityLabel="Crear nueva alarma"
@@ -356,11 +356,11 @@ function AlarmsScreen() {
           <MaterialIcons name="add" size={26} color="#fff" />
           <Text style={styles.fabText}>Nueva Alarma</Text>
         </LinearGradient>
-      </TouchableOpacity>
+      </TouchableOpacity>}
 
       {/* Modal crear alarma */}
       <Modal visible={modalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={[styles.modalCard, { backgroundColor: cardBg }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: textColor }]}>Nueva Alarma</Text>
@@ -369,7 +369,7 @@ function AlarmsScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text style={styles.fieldLabel}>MEDICAMENTO</Text>
               <TextInput
                 style={[styles.modalInput, { color: textColor, backgroundColor: bg, borderColor: isDark ? DS.colors.borderDark : DS.colors.border }]}
@@ -496,7 +496,7 @@ function AlarmsScreen() {
               />
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
     </ScreenBackground>
@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
     gap: 8,
     height: 48,
     borderRadius: DS.borderRadius.lg,
-    backgroundColor: DS.colors.secondary,
+    backgroundColor: DS.colors.royalBlue,
   },
   takeBtnMuted: {
     backgroundColor: DS.colors.secondaryLight,

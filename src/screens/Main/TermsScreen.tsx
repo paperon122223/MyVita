@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { DesignSystem as DS } from '../../theme/designSystem';
+import { SectionHero } from '../../components/ui/SectionHero';
 
 const SECTIONS = [
   ['Naturaleza del proyecto', 'MyVita es un prototipo académico de apoyo para organizar medicamentos y bienestar. No es un dispositivo médico ni un servicio de emergencias.'],
@@ -23,12 +24,13 @@ function TermsScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor }]} contentContainerStyle={styles.content}>
+      <SectionHero title="Uso responsable" subtitle="Conoce cómo MyVita te acompaña." image={require('../../../assets/images/section-medicine.png')} isDark={isDark} />
       <View style={[styles.notice, { backgroundColor: cardColor }]}>
         <MaterialIcons name="health-and-safety" size={30} color={DS.colors.secondary} />
         <Text style={[styles.noticeText, { color: textColor }]}>MyVita acompaña tu organización; las decisiones médicas corresponden a profesionales de la salud.</Text>
       </View>
       {SECTIONS.map(([title, body]) => (
-        <View key={title} style={styles.section}>
+        <View key={title} style={[styles.section, { backgroundColor: cardColor, borderColor: isDark ? DS.colors.borderDark : DS.colors.border }]}>
           <Text style={[styles.title, { color: textColor }]}>{title}</Text>
           <Text style={[styles.body, { color: mutedColor }]}>{body}</Text>
         </View>
@@ -42,7 +44,7 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 40 },
   notice: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, borderRadius: DS.borderRadius.xl, marginBottom: 24, ...DS.shadows.sm },
   noticeText: { flex: 1, fontSize: 17, lineHeight: 25, fontFamily: DS.fonts.semibold },
-  section: { marginBottom: 22 },
+  section: { marginBottom: 14, padding: 18, borderRadius: DS.borderRadius.xl, borderWidth: 1, ...DS.shadows.sm },
   title: { fontSize: 19, fontFamily: DS.fonts.bold, marginBottom: 7 },
   body: { fontSize: 16, lineHeight: 25, fontFamily: DS.fonts.regular },
 });

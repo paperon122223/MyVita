@@ -1,61 +1,60 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ImageSourcePropType, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTabBarClearance } from '../../utils/layout';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { ScreenBackground } from '../../components/ui/ScreenBackground';
 import { DesignSystem as DS } from '../../theme/designSystem';
 
-type MoreRoute = 'Historial' | 'Diary' | 'Mapa' | 'Cuidador' | 'Settings';
+type MoreRoute = 'Chat' | 'Historial' | 'Diary' | 'Mapa' | 'Cuidador' | 'Settings';
 
 const OPTIONS: Array<{
   route: MoreRoute;
   title: string;
   description: string;
-  icon: keyof typeof MaterialIcons.glyphMap;
-  gradient: readonly [string, string];
+  image: ImageSourcePropType;
 }> = [
+  {
+    route: 'Chat',
+    title: 'Asistente IA',
+    description: 'Resuelve dudas sobre el uso de MyVita',
+    image: require('../../../assets/images/section-assistant.png'),
+  },
   {
     route: 'Historial',
     title: 'Historial de tomas',
-    description: 'Revisa qué tomaste y qué se te pasó',
-    icon: 'history',
-    gradient: DS.sectionGradients.alarmas,
+    description: 'Consulta tus tomas registradas',
+    image: require('../../../assets/images/section-alarms.png'),
   },
   {
     route: 'Diary',
     title: 'Diario',
     description: 'Registra cómo te sientes hoy',
-    icon: 'edit-note',
-    gradient: DS.sectionGradients.diario,
+    image: require('../../../assets/images/section-diary.png'),
   },
   {
     route: 'Mapa',
     title: 'Mi ubicación',
     description: 'Consulta y comparte dónde estás',
-    icon: 'location-on',
-    gradient: DS.sectionGradients.mapa,
+    image: require('../../../assets/images/section-location.png'),
   },
   {
     route: 'Cuidador',
     title: 'Cuidadores',
     description: 'Vincula a un familiar que te acompañe',
-    icon: 'supervisor-account',
-    gradient: DS.sectionGradients.cuidador,
+    image: require('../../../assets/images/section-caregiver.png'),
   },
   {
     route: 'Settings',
     title: 'Configuración',
     description: 'Perfil, tema, notificaciones y sesión',
-    icon: 'settings',
-    gradient: DS.sectionGradients.configuracion,
+    image: require('../../../assets/images/section-settings.png'),
   },
 ];
 
 function MoreScreen({ navigation }: any) {
   const { isDark } = useDarkMode();
-  const insets = useSafeAreaInsets();
+  const clearance = useTabBarClearance();
   const cardColor = isDark ? DS.colors.cardDark : DS.colors.card;
   const textColor = isDark ? DS.colors.textDark : DS.colors.text;
   const mutedColor = isDark ? DS.colors.mutedDark : DS.colors.muted;
@@ -67,7 +66,7 @@ function MoreScreen({ navigation }: any) {
         contentContainerStyle={[
           styles.content,
           // Deja libre la barra flotante (56) + su separación del sistema.
-          { paddingBottom: insets.bottom + 100 },
+          { paddingBottom: clearance },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -84,14 +83,7 @@ function MoreScreen({ navigation }: any) {
             accessibilityRole="button"
             accessibilityLabel={`${option.title}. ${option.description}`}
           >
-            <LinearGradient
-              colors={option.gradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.iconTile}
-            >
-              <MaterialIcons name={option.icon} size={32} color="#fff" />
-            </LinearGradient>
+            <Image source={option.image} style={styles.optionImage} resizeMode="contain" />
             <View style={styles.optionText}>
               <Text style={[styles.optionTitle, { color: textColor }]}>{option.title}</Text>
               <Text style={[styles.optionDescription, { color: mutedColor }]}>
@@ -128,12 +120,11 @@ const styles = StyleSheet.create({
     minHeight: 88,
     ...DS.shadows.sm,
   },
-  iconTile: {
+  optionImage: {
     width: 60,
     height: 60,
     borderRadius: DS.borderRadius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#fff',
   },
   optionText: {
     flex: 1,
@@ -144,9 +135,9 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   optionDescription: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: DS.fonts.regular,
-    lineHeight: 20,
+    lineHeight: 24,
   },
 });
 

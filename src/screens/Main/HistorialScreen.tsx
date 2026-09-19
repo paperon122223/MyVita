@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   SectionList,
   StyleSheet,
   Text,
@@ -11,8 +12,10 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import databaseService from '../../services/database';
+import reporteService from '../../services/reporteService';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { ScreenBackground } from '../../components/ui/ScreenBackground';
+import { SectionHero } from '../../components/ui/SectionHero';
 import { useTabBarClearance } from '../../utils/layout';
 import { localDateFromKey, localDateKey } from '../../utils/localDate';
 import { DesignSystem as DS } from '../../theme/designSystem';
@@ -109,6 +112,29 @@ function HistorialScreen() {
 
   const adherencia = total > 0 ? Math.round((tomadas / total) * 100) : 0;
 
+  const [generando, setGenerando] = useState(false);
+
+  const compartirReporte = useCallback(async () => {
+    if (total === 0) {
+      Alert.alert(
+        'Sin datos',
+        'Todavía no hay tomas registradas en este periodo, así que el reporte saldría vacío.',
+      );
+      return;
+    }
+    setGenerando(true);
+    try {
+      await reporteService.compartir(userId, {
+        nombrePaciente: currentUser?.nombre || 'Paciente',
+        dias,
+      });
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo generar el reporte. Intenta de nuevo.');
+    } finally {
+      setGenerando(false);
+    }
+  }, [userId, currentUser?.nombre, dias, total]);
+
   const Resumen = (
     <View style={[styles.resumen, { backgroundColor: cardBg, borderColor }]}>
       <View style={styles.filtros}>
@@ -157,6 +183,23 @@ function HistorialScreen() {
           <Text style={[styles.resumenLabel, { color: mutedColor }]}>Adherencia</Text>
         </View>
       </View>
+
+      <TouchableOpacity
+        style={[styles.reporteBoton, { borderColor: DS.colors.primary }]}
+        onPress={compartirReporte}
+        disabled={generando}
+        accessibilityRole="button"
+        accessibilityLabel="Compartir reporte para el médico"
+      >
+        {generando ? (
+          <ActivityIndicator size="small" color={DS.colors.primary} />
+        ) : (
+          <MaterialIcons name="picture-as-pdf" size={22} color={DS.colors.primary} />
+        )}
+        <Text style={[styles.reporteTexto, { color: DS.colors.primary }]}>
+          {generando ? 'Generando…' : 'Reporte para mi médico'}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -176,7 +219,7 @@ function HistorialScreen() {
         sections={secciones}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.contenido, { paddingBottom: clearance }]}
-        ListHeaderComponent={Resumen}
+        ListHeaderComponent={<><SectionHero title="Tu camino de salud" subtitle="Consulta tus tomas y celebra cada avance." image={require('../../../assets/images/section-diary.png')} isDark={isDark} />{Resumen}</>}
         stickySectionHeadersEnabled={false}
         renderSectionHeader={({ section }) => (
           <Text style={[styles.seccionTitulo, { color: textColor }]}>{section.title}</Text>
@@ -280,6 +323,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: DS.fonts.medium,
     marginTop: 2,
+  },
+  reporteBoton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 16,
+    paddingVertical: 13,
+    borderRadius: DS.borderRadius.full,
+    borderWidth: 1.5,
+  },
+  reporteTexto: {
+    fontSize: 15,
+    fontFamily: DS.fonts.bold,
   },
   seccionTitulo: {
     fontSize: 17,

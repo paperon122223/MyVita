@@ -1,5 +1,5 @@
 const DATE_KEY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
-const TIME_PATTERN = /^(\d{1,2}):(\d{2})/;
+const TIME_PATTERN = /^(\d{1,2}):(\d{2})$/;
 
 /** Fecha calendario del dispositivo, sin convertirla a UTC. */
 export function localDateKey(date = new Date()): string {

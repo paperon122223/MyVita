@@ -278,6 +278,8 @@ export const DatabaseService = {
       `ALTER TABLE alarmas ADD COLUMN recurrencia_id TEXT`,
       // Umbral para avisar "te quedan pocas"; 5 unidades por defecto.
       `ALTER TABLE inventario ADD COLUMN umbral_aviso INTEGER DEFAULT 5`,
+      // Ruta local de la foto del medicamento (identificar por color y forma).
+      `ALTER TABLE medicamentos ADD COLUMN foto_uri TEXT`,
     ];
     for (const sql of migraciones) {
       try {
@@ -678,46 +680,40 @@ export const DatabaseService = {
     const database = await this.getDB();
     const now = new Date().toISOString();
 
-    await database.runAsync(`UPDATE alarmas SET tomado = 1, updated_at = ? WHERE id = ?`, [
-      now,
-      alarmaId,
-    ]);
-
-    // Crear registro en tabla tomas
-    const alarma = await database.getFirstAsync<any>(`SELECT * FROM alarmas WHERE id = ?`, [
-      alarmaId,
-    ]);
-
-    if (alarma) {
-      await database.runAsync(
+    let confirmada = false;
+    // La toma y el inventario se confirman juntos. El UPDATE condicional
+    // también protege frente a dos confirmaciones concurrentes.
+    await database.withExclusiveTransactionAsync(async (transaction) => {
+      const result = await transaction.runAsync(
+        `UPDATE alarmas SET tomado = 1, updated_at = ?
+         WHERE id = ? AND tomado = 0 AND deleted_at IS NULL`,
+        [now, alarmaId],
+      );
+      if (result.changes === 0) return;
+      const alarma = await transaction.getFirstAsync<any>(
+        'SELECT * FROM alarmas WHERE id = ?', [alarmaId],
+      );
+      if (!alarma) throw new Error('No se encontró la alarma');
+      await transaction.runAsync(
         `INSERT INTO tomas (
           id, alarma_id, usuario_id, medicamento_id,
           hora_toma, hora_tomada, confirmado, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          `toma_${Date.now()}`,
-          alarmaId,
-          alarma.usuario_id,
-          alarma.medicamento_id,
-          alarma.hora_toma,
-          now,
-          1,
-          now,
-          now,
-        ],
+        [`toma_${alarmaId}`, alarmaId, alarma.usuario_id, alarma.medicamento_id,
+          alarma.hora_toma, now, 1, now, now],
       );
-      // Al confirmar la toma se descuenta una unidad del inventario, si el
-      // usuario lleva conteo de ese medicamento.
       if (alarma.medicamento_id) {
-        try {
-          await this.descontarInventario(alarma.medicamento_id);
-        } catch (error) {
-          // El inventario es un extra: si falla, la toma igual queda registrada.
-          console.warn('No se pudo descontar del inventario:', error);
-        }
+        await transaction.runAsync(
+          `UPDATE inventario SET cantidad = MAX(0, cantidad - 1),
+             updated_at = ?, synced_at = NULL
+           WHERE medicamento_id = ? AND deleted_at IS NULL`,
+          [now, alarma.medicamento_id],
+        );
       }
-
-      const actualizada = await database.getFirstAsync<any>(`SELECT * FROM alarmas WHERE id = ?`, [alarmaId]);
+      confirmada = true;
+    });
+    if (confirmada) {
+      const actualizada = await database.getFirstAsync<any>('SELECT * FROM alarmas WHERE id = ?', [alarmaId]);
       if (actualizada) await this.encolarCambio('alarmas', 'UPDATE', alarmaId, actualizada);
     }
   },
@@ -802,9 +798,9 @@ export const DatabaseService = {
 
     await database.runAsync(
       `INSERT INTO medicamentos (
-        id, usuario_id, nombre, descripcion, dosis, unidad,
+        id, usuario_id, nombre, descripcion, dosis, unidad, foto_uri,
         created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         medicamento.usuarioId,
@@ -812,6 +808,7 @@ export const DatabaseService = {
         medicamento.descripcion || null,
         medicamento.dosis || null,
         medicamento.unidad || null,
+        medicamento.fotoUri || null,
         now,
         now,
       ],
@@ -830,14 +827,20 @@ export const DatabaseService = {
    */
   async actualizarMedicamento(
     id: string,
-    datos: { nombre: string; descripcion?: string; dosis?: string; unidad?: string },
+    datos: {
+      nombre: string;
+      descripcion?: string;
+      dosis?: string;
+      unidad?: string;
+      fotoUri?: string | null;
+    },
   ): Promise<void> {
     const database = await this.getDB();
     const now = new Date().toISOString();
 
     await database.runAsync(
       `UPDATE medicamentos
-         SET nombre = ?, descripcion = ?, dosis = ?, unidad = ?,
+         SET nombre = ?, descripcion = ?, dosis = ?, unidad = ?, foto_uri = ?,
              updated_at = ?, synced_at = NULL
        WHERE id = ? AND deleted_at IS NULL`,
       [
@@ -845,6 +848,7 @@ export const DatabaseService = {
         datos.descripcion || null,
         datos.dosis || null,
         datos.unidad || null,
+        datos.fotoUri ?? null,
         now,
         id,
       ],

@@ -1,4 +1,5 @@
 import { ERROR_MESSAGES } from './constants';
+import { localDateFromKey } from './localDate';
 
 // Email validation
 export const isValidEmail = (email: string): boolean => {
@@ -21,8 +22,9 @@ export const passwordsMatch = (password: string, confirmation: string): boolean 
 
 // Phone validation (basic)
 export const isValidPhone = (phone: string): boolean => {
-  const phoneRegex = /^[0-9\s\-\+\(\)]{7,}$/;
-  return phoneRegex.test(phone.replace(/\s/g, ''));
+  if (!/^\+?[0-9\s\-()]+$/.test(phone.trim())) return false;
+  const digits = phone.replace(/\D/g, '');
+  return digits.length >= 7 && digits.length <= 15;
 };
 
 // Time validation (HH:mm format)
@@ -33,13 +35,17 @@ export const isValidTime = (time: string): boolean => {
 
 // Date validation (YYYY-MM-DD format)
 export const isValidDate = (date: string): boolean => {
-  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-  return dateRegex.test(date);
+  try {
+    localDateFromKey(date);
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 // Age validation
 export const isValidAge = (age: number): boolean => {
-  return age > 0 && age < 150;
+  return Number.isInteger(age) && age > 0 && age < 150;
 };
 
 // Login form validation
@@ -142,7 +148,7 @@ export const validateAlarmForm = (
     errors.diasSemana = 'Debes seleccionar al menos un día.';
   }
 
-  if (recordatorio < 0 || recordatorio > 120) {
+  if (!Number.isInteger(recordatorio) || recordatorio < 0 || recordatorio > 120) {
     errors.recordatorio = 'El recordatorio debe estar entre 0 y 120 minutos.';
   }
 

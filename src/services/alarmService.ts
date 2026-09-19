@@ -8,6 +8,8 @@ import { Alert, AppState, AppStateStatus, NativeEventSubscription } from 'react-
 import { Notifications } from '../utils/notificationsModule';
 import DatabaseService from './database';
 import NotificationService from './notificationService';
+import pushTokenService from './pushTokenService';
+import pullSyncService from './pullSyncService';
 import { addLocalDays, localDateKey, localDateTime } from '../utils/localDate';
 
 export type FrecuenciaAlarma = 'una_vez' | 'diaria' | 'semanal';
@@ -99,6 +101,14 @@ class AlarmService {
 
       // Iniciar watchdog (re-sincroniza cada minuto)
       this.iniciarWatchdog();
+
+      // Registrar el push token para recibir avisos del servidor (ej. Alexa).
+      // No bloquea el init: si falla, el watchdog sigue jalando cambios igual.
+      pushTokenService.registrar(usuarioId).catch(() => {});
+
+      // Cuando llega una push "alarm-sync" (app en foreground/background vivo),
+      // bajar cambios del servidor de inmediato en vez de esperar al watchdog.
+      NotificationService.registerNotificationCallback(this.handleRemoteNotification);
 
       console.log('✅ AlarmService inicializado');
     } catch (error) {
@@ -399,12 +409,36 @@ class AlarmService {
 
     this.watchdogInterval = setInterval(async () => {
       try {
-        await this.cargarAlarmasDelDia();
+        // Red de seguridad si la push no llegó: bajar cambios del servidor
+        // antes de releer la BD local.
+        await this.pullYReconciliar();
       } catch (error) {
         console.error('❌ Error en watchdog:', error);
       }
     }, 60000);
   }
+
+  /**
+   * Trae cambios del servidor (medicamentos/alarmas) y, si hubo algo nuevo,
+   * recarga y reprograma las notificaciones nativas — mismo par que usa
+   * crearAlarma() para materializar un cambio recién guardado.
+   */
+  private async pullYReconciliar(force = false): Promise<void> {
+    if (!this.usuarioId) return;
+    const huboCambios = await pullSyncService.pullServerChanges(this.usuarioId);
+    await this.cargarAlarmasDelDia();
+    // Forzar si el pull trajo algo nuevo, aunque ya se hubiera reconciliado hoy.
+    await this.reconciliarNotificacionesPendientes(force || huboCambios);
+  }
+
+  /** Push silenciosa "alarm-sync": bajar cambios de inmediato. */
+  private handleRemoteNotification = (notification: any) => {
+    const tipo = notification?.request?.content?.data?.type;
+    if (tipo !== 'alarm-sync') return;
+    this.pullYReconciliar().catch((error) =>
+      console.error('❌ Error procesando push alarm-sync:', error),
+    );
+  };
 
   /**
    * Manejar cambios de estado de la app
@@ -413,7 +447,7 @@ class AlarmService {
     if (state === 'active') {
       console.log('📱 App en foreground - Reiniciar monitor');
       this.iniciarMonitor();
-      this.reconciliarNotificacionesPendientes().catch((error) =>
+      this.pullYReconciliar().catch((error) =>
         console.error('Error reconciliando alarmas:', error),
       );
     }
@@ -427,6 +461,7 @@ class AlarmService {
     if (this.watchdogInterval) clearInterval(this.watchdogInterval);
     this.appStateSubscription?.remove();
     this.appStateSubscription = null;
+    NotificationService.unregisterNotificationCallback(this.handleRemoteNotification);
     this.usuarioId = null;
     this.nativeNotificationsReady = false;
     this.alarmas = [];

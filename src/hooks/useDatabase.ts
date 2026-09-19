@@ -72,12 +72,19 @@ export const useTomas = (usuarioId: string, fecha: string): UseDatabaseState<Tom
       setError(null);
       // Fetch tomas for a specific date
       const result = await databaseService.ejecutar(
-        'SELECT * FROM tomas WHERE usuarioId = ? AND fecha = ? ORDER BY horaProgramada',
+        `SELECT t.*, t.usuario_id AS usuarioId, t.alarma_id AS alarmaId,
+                t.medicamento_id AS medicamentoId, a.fecha,
+                t.hora_toma AS horaProgramada, t.hora_tomada AS horaRegistrada,
+                t.confirmado AS tomada
+           FROM tomas t JOIN alarmas a ON a.id = t.alarma_id
+          WHERE t.usuario_id = ? AND a.fecha = ?
+            AND t.deleted_at IS NULL AND a.deleted_at IS NULL
+          ORDER BY t.hora_toma`,
         [usuarioId, fecha],
       );
-      setData(result || []);
+      setData((result || []).map((row: any) => ({ ...row, tomada: !!row.tomada })));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error fetching tomas');
+      setError(err instanceof Error ? err.message : 'Error al cargar las tomas');
       setData(null);
     } finally {
       setLoading(false);
@@ -101,12 +108,16 @@ export const useCuidadores = (usuarioId: string): UseDatabaseState<Cuidador[]> =
       setLoading(true);
       setError(null);
       const result = await databaseService.ejecutar(
-        'SELECT * FROM cuidadores WHERE usuarioId = ?',
+        `SELECT c.*, c.usuario_id AS usuarioId, u.nombre, c.rol AS relacion,
+                c.autorizado AS notificaciones
+           FROM cuidadores c LEFT JOIN usuarios u ON u.id = c.cuidador_id AND u.deleted_at IS NULL
+          WHERE c.usuario_id = ? AND c.deleted_at IS NULL
+          ORDER BY u.nombre`,
         [usuarioId],
       );
-      setData(result || []);
+      setData((result || []).map((row: any) => ({ ...row, notificaciones: !!row.notificaciones })));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error fetching caregivers');
+      setError(err instanceof Error ? err.message : 'Error al cargar los cuidadores');
       setData(null);
     } finally {
       setLoading(false);

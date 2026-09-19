@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { DesignSystem as DS } from '../../theme/designSystem';
+import { SectionHero } from '../../components/ui/SectionHero';
 
 const SECTIONS = [
   {
@@ -48,12 +49,13 @@ function PrivacyScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor }]} contentContainerStyle={styles.content}>
+      <SectionHero title="Tu privacidad" subtitle="Información clara sobre tus datos." image={require('../../../assets/images/section-caregiver.png')} isDark={isDark} />
       <View style={[styles.notice, { backgroundColor: cardColor }]}>
         <MaterialIcons name="privacy-tip" size={30} color={DS.colors.primary} />
         <Text style={[styles.noticeText, { color: textColor }]}>Tu información de salud merece un tratamiento claro y cuidadoso.</Text>
       </View>
       {SECTIONS.map((section) => (
-        <View key={section.title} style={styles.section}>
+        <View key={section.title} style={[styles.section, { backgroundColor: cardColor, borderColor: isDark ? DS.colors.borderDark : DS.colors.border }]}>
           <Text style={[styles.title, { color: textColor }]}>{section.title}</Text>
           <Text style={[styles.body, { color: mutedColor }]}>{section.body}</Text>
         </View>
@@ -67,7 +69,7 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 40 },
   notice: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, borderRadius: DS.borderRadius.xl, marginBottom: 24, ...DS.shadows.sm },
   noticeText: { flex: 1, fontSize: 17, lineHeight: 25, fontFamily: DS.fonts.semibold },
-  section: { marginBottom: 22 },
+  section: { marginBottom: 14, padding: 18, borderRadius: DS.borderRadius.xl, borderWidth: 1, ...DS.shadows.sm },
   title: { fontSize: 19, fontFamily: DS.fonts.bold, marginBottom: 7 },
   body: { fontSize: 16, lineHeight: 25, fontFamily: DS.fonts.regular },
 });

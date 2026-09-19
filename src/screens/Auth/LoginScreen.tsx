@@ -66,10 +66,10 @@ function LoginScreen({ navigation }: any) {
   return (
     <ScreenBackground isDark={isDark}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {/* Logo grande arriba + ilustración grande abajo */}
         <Animated.View entering={FadeInUp.duration(600)} style={styles.headerContainer}>
           <Image

@@ -12,6 +12,8 @@ import {
   Linking,
   FlatList,
   Image,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -31,6 +33,7 @@ import emergencyService from '../../services/emergencyService';
 import type { ContactoElegido } from '../../services/emergencyService';
 import { GradientButton } from '../../components/ui/GradientButton';
 import { ScreenBackground } from '../../components/ui/ScreenBackground';
+import { SectionHero } from '../../components/ui/SectionHero';
 import { DesignSystem as DS } from '../../theme/designSystem';
 import { RootState } from '../../types';
 
@@ -239,6 +242,7 @@ function SOSScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
+      <SectionHero title="Estamos contigo" subtitle="Pide ayuda rápidamente cuando haga falta." image={require('../../../assets/images/section-caregiver.png')} isDark={isDark} />
       {/* Botón SOS */}
       <View style={styles.sosSection}>
         <Text style={[styles.title, { color: textColor }]}>Botón de Emergencia</Text>
@@ -279,9 +283,9 @@ function SOSScreen() {
       {/* Contactos */}
       <View style={[styles.card, { backgroundColor: cardBg }]}>
         <View style={styles.cardHeader}>
-          <Text style={styles.sectionTitle}>Contactos de emergencia</Text>
-          <TouchableOpacity onPress={() => setModalVisible(true)}>
-            <LinearGradient colors={DS.statGradients.active} style={styles.addButton}>
+          <Text style={[styles.sectionTitle, { color: textColor }]}>Contactos de emergencia</Text>
+          <TouchableOpacity onPress={() => setModalVisible(true)} accessibilityRole="button" accessibilityLabel="Agregar contacto de emergencia">
+            <LinearGradient colors={DS.statGradients.signature} style={styles.addButton}>
               <MaterialIcons name="add" size={24} color="#fff" />
             </LinearGradient>
           </TouchableOpacity>
@@ -326,8 +330,8 @@ function SOSScreen() {
 
       {/* Modal: nuevo contacto de emergencia */}
       <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: cardBg }]}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <ScrollView style={{ maxHeight: '90%', flexGrow: 0 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={[styles.modalCard, { backgroundColor: cardBg }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: textColor }]}>Nuevo Contacto</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -380,8 +384,8 @@ function SOSScreen() {
               onPress={handleAddContact}
               loading={saving}
             />
-          </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal

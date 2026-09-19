@@ -175,7 +175,7 @@ class NotificationService {
         description: 'Recordatorios de toma de medicamentos',
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 500, 250, 500],
-        sound: 'default',
+        // Omitir sound selecciona el tono del sistema en Android.
         lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
         bypassDnd: true,
       });
@@ -185,7 +185,7 @@ class NotificationService {
         description: 'Recordatorios de toma sin vibración',
         importance: Notifications.AndroidImportance.MAX,
         enableVibrate: false,
-        sound: 'default',
+        // Omitir sound selecciona el tono del sistema en Android.
         lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       });
 
@@ -194,7 +194,7 @@ class NotificationService {
         description: 'Notificaciones de alarmas de medicamentos',
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
-        sound: 'default',
+        // Omitir sound selecciona el tono del sistema en Android.
       });
 
       await Notifications.setNotificationChannelAsync(NOTIFICATION_CHANNEL_DEFAULT, {

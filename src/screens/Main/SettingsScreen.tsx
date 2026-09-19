@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,6 +8,8 @@ import {
   Switch,
   Alert,
   Modal,
+  Linking,
+  AppState,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -15,9 +17,16 @@ import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../redux/slices/userSlice';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import authService from '../../services/authService';
+import alarmService from '../../services/alarmService';
+import { useTabBarClearance } from '../../utils/layout';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Notifications } from '../../utils/notificationsModule';
 import notificationService from '../../services/notificationService';
+import demoDataService from '../../services/demoDataService';
+import respaldoService from '../../services/respaldoService';
 import { GradientButton } from '../../components/ui/GradientButton';
 import { ScreenBackground } from '../../components/ui/ScreenBackground';
+import { SectionHero } from '../../components/ui/SectionHero';
 import { DesignSystem as DS } from '../../theme/designSystem';
 import { RootState, ThemeMode } from '../../types';
 import Constants from 'expo-constants';
@@ -55,13 +64,26 @@ function SettingRow({ icon, label, right, color, onPress, dark }: RowProps) {
       {right ?? <MaterialIcons name="chevron-right" size={20} color={DS.colors.subtle} />}
     </View>
   );
-  return onPress ? <TouchableOpacity onPress={onPress}>{content}</TouchableOpacity> : content;
+  return onPress ? <TouchableOpacity onPress={onPress} accessibilityRole="button" accessibilityLabel={label}>{content}</TouchableOpacity> : content;
 }
 
 function SettingsScreen({ navigation }: any) {
   const dispatch = useDispatch();
   const currentUser = useSelector((state: RootState) => state.user.currentUser);
   const { isDark, mode, setThemeMode } = useDarkMode();
+
+  const clearance = useTabBarClearance();
+  const insets = useSafeAreaInsets();
+  const [demoVisible, setDemoVisible] = useState(false);
+  const [prefSaving, setPrefSaving] = useState(false);
+  const prefBusy = useRef(false);
+  const [testing, setTesting] = useState(false);
+  const [permission, setPermission] = useState<'checking' | 'granted' | 'denied' | 'unavailable'>('checking');
+  const readPermission = useCallback(async () => {
+    try {
+      setPermission(!Notifications ? 'unavailable' : (await notificationService.checkPermissions()) ? 'granted' : 'denied');
+    } catch { setPermission('unavailable'); }
+  }, []);
 
   // Preferencias de notificación
   const [notifModalVisible, setNotifModalVisible] = useState(false);
@@ -72,8 +94,28 @@ function SettingsScreen({ navigation }: any) {
     notificationService.getPrefs().then((p) => {
       setNotifSonido(p.sonido);
       setNotifVibrar(p.vibrar);
-    });
+    }).catch(() => Alert.alert('No pudimos leer tus preferencias', 'Intenta abrir Configuración de nuevo.'));
   }, []);
+
+  useEffect(() => {
+    if (!notifModalVisible) return;
+    readPermission();
+    const listener = AppState.addEventListener('change', state => { if (state === 'active') readPermission(); });
+    return () => listener.remove();
+  }, [notifModalVisible, readPermission]);
+
+  const savePreference = async (key: 'sonido' | 'vibrar', value: boolean) => {
+    if (prefBusy.current) return;
+    prefBusy.current = true;
+    setPrefSaving(true);
+    try {
+      await notificationService.setPrefs({ [key]: value });
+      if (key === 'sonido') setNotifSonido(value); else setNotifVibrar(value);
+      await alarmService.refresh();
+    } catch {
+      Alert.alert('Revisa tus notificaciones', 'No pudimos aplicar el cambio a todos los recordatorios. Intenta de nuevo.');
+    } finally { prefBusy.current = false; setPrefSaving(false); }
+  };
 
   const cardBg = isDark ? DS.colors.cardDark : DS.colors.card;
   const textColor = isDark ? DS.colors.textDark : DS.colors.text;
@@ -97,11 +139,104 @@ function SettingsScreen({ navigation }: any) {
     ]);
   };
 
-  const proximamente = () => Alert.alert('Próximamente', 'Esta función estará disponible pronto.');
+
+  const exportarRespaldo = async () => {
+    try {
+      const total = await respaldoService.exportar(currentUser?.id || '');
+      if (total === 0) {
+        Alert.alert('Sin datos', 'Todavía no hay nada que respaldar.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo crear la copia de seguridad.');
+    }
+  };
+
+  const restaurarRespaldo = () => {
+    Alert.alert(
+      'Restaurar datos',
+      'Se reemplazarán tus medicamentos, alarmas, historial, inventario y diario ' +
+        'por los del archivo que elijas.\n\nLo que tengas ahora se perderá.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Elegir archivo',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const total = await respaldoService.importar(currentUser?.id || '');
+              if (total > 0) {
+                await alarmService.refresh();
+                Alert.alert('Listo', `Se restauraron ${total} registros.`);
+              }
+            } catch (error: any) {
+              Alert.alert(
+                'Error',
+                error?.message === 'formato-invalido'
+                  ? 'Ese archivo no es una copia de seguridad de MyVita.'
+                  : 'No se pudieron restaurar los datos.',
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const cargarDatosDemo = () => {
+    Alert.alert(
+      'Cargar datos de ejemplo',
+      'Se agregarán 4 medicamentos con 14 días de historial, inventario y entradas de diario, ' +
+        'para mostrar la app con contenido.\n\nEsto NO borra lo que ya tienes.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cargar',
+          onPress: async () => {
+            try {
+              const { medicamentos, alarmas } = await demoDataService.cargar(currentUser?.id || '');
+              await alarmService.refresh();
+              Alert.alert(
+                'Listo',
+                `Se agregaron ${medicamentos} medicamentos y ${alarmas} tomas de ejemplo. ` +
+                  'Revisa Inicio, Alarmas e Historial.',
+              );
+            } catch (error) {
+              Alert.alert('Error', 'No se pudieron cargar los datos de ejemplo.');
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const borrarTodo = () => {
+    Alert.alert(
+      'Eliminar todos los datos',
+      'Se borrarán TODOS tus medicamentos, alarmas, historial, inventario y diario. ' +
+        'Esta acción no se puede deshacer.\n\nTu cuenta y tus contactos de emergencia no se tocan.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Borrar todo',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await demoDataService.limpiar(currentUser?.id || '');
+              await alarmService.refresh();
+              Alert.alert('Listo', 'Se borraron tus datos de medicamentos e historial.');
+            } catch (error) {
+              Alert.alert('Error', 'No se pudieron borrar los datos.');
+            }
+          },
+        },
+      ],
+    );
+  };
 
   return (
     <ScreenBackground isDark={isDark}>
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: clearance }} showsVerticalScrollIndicator={false}>
+      <SectionHero title="A tu manera" subtitle="Ajusta MyVita para sentirte más cómodo." image={require('../../../assets/images/section-settings.png')} isDark={isDark} />
       {/* Perfil con gradiente azul → gris */}
       <LinearGradient colors={DS.sectionGradients.configuracion} style={styles.profileCard}>
         <View style={styles.profileAvatar}>
@@ -125,15 +260,17 @@ function SettingsScreen({ navigation }: any) {
                   <TouchableOpacity
                     key={opt.value}
                     style={[styles.themeChip, active && styles.themeChipActive]}
-                    onPress={() => setThemeMode(opt.value)}
+                    onPress={() => setThemeMode(opt.value).catch(() => Alert.alert('No se guardó la apariencia', 'El cambio se verá ahora, pero puede perderse al cerrar MyVita. Intenta de nuevo.'))}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: active }}
                     accessibilityLabel={`Tema ${opt.label}`}
                   >
                     <MaterialIcons
                       name={opt.icon}
                       size={17}
-                      color={active ? '#fff' : DS.colors.muted}
+                      color={active ? '#fff' : isDark ? DS.colors.mutedDark : DS.colors.muted}
                     />
-                    <Text style={[styles.themeChipText, active && styles.themeChipTextActive]}>
+                    <Text style={[styles.themeChipText, { color: isDark ? DS.colors.mutedDark : DS.colors.muted }, active && styles.themeChipTextActive]}>
                       {opt.label}
                     </Text>
                   </TouchableOpacity>
@@ -159,14 +296,21 @@ function SettingsScreen({ navigation }: any) {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>DATOS</Text>
         <View style={[styles.sectionCard, { backgroundColor: cardBg }]}>
-          <SettingRow icon="backup" label="Copia de Seguridad" dark={isDark} onPress={proximamente} />
-          <SettingRow icon="restore" label="Restaurar Datos" dark={isDark} onPress={proximamente} />
+          <SettingRow icon="backup" label="Copia de Seguridad" dark={isDark} onPress={exportarRespaldo} />
+          <SettingRow icon="restore" label="Restaurar Datos" dark={isDark} onPress={restaurarRespaldo} />
+          <SettingRow icon="science" label="Herramientas de demostración" dark={isDark} onPress={() => setDemoVisible(value => !value)} />
+          {demoVisible && <SettingRow
+            icon="auto-awesome"
+            label="Cargar datos de ejemplo"
+            dark={isDark}
+            onPress={cargarDatosDemo}
+          />}
           <SettingRow
             icon="delete-outline"
             label="Eliminar Todos los Datos"
             color={DS.colors.error}
             dark={isDark}
-            onPress={proximamente}
+            onPress={borrarTodo}
           />
         </View>
       </View>
@@ -185,38 +329,52 @@ function SettingsScreen({ navigation }: any) {
         </View>
       </View>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} accessibilityRole="button">
         <MaterialIcons name="logout" size={19} color="#fff" />
         <Text style={styles.logoutButtonText}>Cerrar Sesión</Text>
       </TouchableOpacity>
 
-      <View style={styles.spacing} />
+
 
       {/* Modal de preferencias de notificación */}
-      <Modal visible={notifModalVisible} transparent animationType="slide">
+      <Modal visible={notifModalVisible} transparent animationType="slide" onRequestClose={() => setNotifModalVisible(false)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: cardBg }]}>
+          <ScrollView style={{ maxHeight: '90%', backgroundColor: cardBg, borderTopLeftRadius: 24, borderTopRightRadius: 24 }} contentContainerStyle={[styles.modalCard, { paddingBottom: Math.max(insets.bottom, 16) + 16 }]} accessibilityViewIsModal>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: textColor }]}>Notificaciones</Text>
-              <TouchableOpacity onPress={() => setNotifModalVisible(false)}>
+              <TouchableOpacity onPress={() => setNotifModalVisible(false)} style={styles.closeButton} accessibilityRole="button" accessibilityLabel="Cerrar notificaciones">
                 <MaterialIcons name="close" size={24} color={DS.colors.subtle} />
               </TouchableOpacity>
             </View>
+
+            <Text accessibilityLiveRegion="polite" style={[styles.prefNote, { color: textColor }]}>
+              {permission === 'granted' ? 'Notificaciones permitidas en este teléfono.' : permission === 'denied' ? 'Las notificaciones están desactivadas. Actívalas para recibir recordatorios.' : permission === 'checking' ? 'Comprobando permisos…' : 'No se pudieron comprobar las notificaciones.'}
+            </Text>
+            {permission === 'denied' && <GradientButton label="Activar notificaciones" onPress={async () => {
+              try {
+                if (!(await notificationService.requestPermissions())) {
+                  Alert.alert('Activar en el teléfono', 'Abre los ajustes de MyVita y permite las notificaciones.', [
+                    { text: 'Ahora no', style: 'cancel' },
+                    { text: 'Abrir ajustes', onPress: () => { Linking.openSettings().catch(() => Alert.alert('No se abrieron los ajustes', 'Abre Ajustes en tu teléfono y busca MyVita.')); } },
+                  ]);
+                } else { await alarmService.refresh(); }
+                await readPermission();
+              } catch { Alert.alert('No se pudo activar', 'Intenta de nuevo desde los ajustes del teléfono.'); }
+            }} />}
 
             <View style={[styles.prefRow, { borderBottomColor: isDark ? DS.colors.borderDark : DS.colors.border }]}>
               <View style={styles.prefLeft}>
                 <MaterialIcons name="volume-up" size={20} color={DS.colors.primary} />
                 <View style={styles.prefText}>
                   <Text style={[styles.prefTitle, { color: textColor }]}>Sonido</Text>
-                  <Text style={styles.prefHint}>Tono al llegar un recordatorio</Text>
+                  <Text style={[styles.prefHint, { color: isDark ? DS.colors.mutedDark : DS.colors.muted }]}>Tono al llegar un recordatorio</Text>
                 </View>
               </View>
               <Switch
                 value={notifSonido}
-                onValueChange={(v) => {
-                  setNotifSonido(v);
-                  notificationService.setPrefs({ sonido: v });
-                }}
+                onValueChange={v => savePreference('sonido', v)}
+                disabled={prefSaving}
+                accessibilityLabel="Sonido de los recordatorios"
                 trackColor={{ true: DS.colors.secondary }}
               />
             </View>
@@ -226,34 +384,41 @@ function SettingsScreen({ navigation }: any) {
                 <MaterialIcons name="vibration" size={20} color={DS.colors.primary} />
                 <View style={styles.prefText}>
                   <Text style={[styles.prefTitle, { color: textColor }]}>Vibración</Text>
-                  <Text style={styles.prefHint}>Vibrar con cada recordatorio</Text>
+                  <Text style={[styles.prefHint, { color: isDark ? DS.colors.mutedDark : DS.colors.muted }]}>Vibrar con cada recordatorio</Text>
                 </View>
               </View>
               <Switch
                 value={notifVibrar}
-                onValueChange={(v) => {
-                  setNotifVibrar(v);
-                  notificationService.setPrefs({ vibrar: v });
-                }}
+                onValueChange={v => savePreference('vibrar', v)}
+                disabled={prefSaving}
+                accessibilityLabel="Vibración de los recordatorios"
                 trackColor={{ true: DS.colors.secondary }}
               />
             </View>
 
-            <Text style={styles.prefNote}>
+            <Text style={[styles.prefNote, { color: isDark ? DS.colors.mutedDark : DS.colors.muted }]}>
               Los recordatorios incluyen botones para confirmar la toma o posponer 10 minutos sin
               abrir la app.
             </Text>
 
             <GradientButton
-              label="Enviar notificación de prueba"
+              label={testing ? "Preparando prueba…" : "Probar notificación"}
+              loading={testing}
               onPress={async () => {
-                const ok = await notificationService.enviarNotificacionPrueba();
-                if (!ok) {
-                  Alert.alert('No disponible', 'Las notificaciones no están disponibles en este entorno.');
-                }
+                if (testing) return;
+                setTesting(true);
+                try {
+                  const ok = await notificationService.enviarNotificacionPrueba();
+                  await readPermission();
+                  Alert.alert(ok ? 'Prueba programada' : 'No se pudo programar', ok ? 'Revisa el aviso de MyVita en las notificaciones del teléfono.' : 'Revisa los permisos de notificaciones e intenta de nuevo.');
+                } catch { Alert.alert('No se pudo probar', 'Revisa los permisos e intenta de nuevo.'); }
+                finally { setTesting(false); }
               }}
             />
-          </View>
+            <TouchableOpacity style={styles.doneButton} onPress={() => setNotifModalVisible(false)} accessibilityRole="button">
+              <Text style={{ fontSize: 18, fontFamily: DS.fonts.bold, color: textColor }}>Listo</Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
       </Modal>
     </ScrollView>
@@ -262,6 +427,8 @@ function SettingsScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
+  closeButton: { minHeight: 48, minWidth: 48, alignItems: 'center', justifyContent: 'center' },
+  doneButton: { minHeight: 56, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
   container: {
     flex: 1,
   },
@@ -301,7 +468,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 17,
     fontFamily: DS.fonts.bold,
     color: DS.colors.primary,
     letterSpacing: 0.7,
@@ -335,6 +502,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   settingLabel: {
+    flex: 1,
+    flexWrap: 'wrap',
     fontSize: 17,
     fontFamily: DS.fonts.semibold,
   },
@@ -354,7 +523,7 @@ const styles = StyleSheet.create({
     ...DS.shadows.sm,
   },
   logoutButtonText: {
-    fontSize: 14,
+    fontSize: 17,
     fontFamily: DS.fonts.bold,
     color: '#fff',
   },
@@ -367,7 +536,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   themeSelectorLabel: {
-    fontSize: 14,
+    fontSize: 17,
     fontFamily: DS.fonts.semibold,
     marginBottom: 10,
   },
@@ -376,6 +545,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   themeChip: {
+    minHeight: 56,
+    flexWrap: 'wrap',
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -386,10 +557,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(148,163,184,0.12)',
   },
   themeChipActive: {
-    backgroundColor: DS.colors.primary,
+    backgroundColor: DS.colors.primaryDark,
   },
   themeChipText: {
-    fontSize: 12,
+    fontSize: 16,
     fontFamily: DS.fonts.bold,
     color: DS.colors.muted,
   },
@@ -414,10 +585,12 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   modalTitle: {
+    flex: 1,
     fontSize: 19,
     fontFamily: DS.fonts.extrabold,
   },
   prefRow: {
+    gap: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -434,18 +607,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   prefTitle: {
-    fontSize: 14,
+    fontSize: 17,
     fontFamily: DS.fonts.bold,
   },
   prefHint: {
-    fontSize: 11,
+    fontSize: 16,
     color: DS.colors.subtle,
     marginTop: 1,
   },
   prefNote: {
-    fontSize: 11,
+    fontSize: 16,
     color: DS.colors.subtle,
-    lineHeight: 16,
+    lineHeight: 24,
     marginVertical: 14,
   },
 });

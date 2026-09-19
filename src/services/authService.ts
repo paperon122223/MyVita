@@ -4,6 +4,7 @@ import axios from 'axios';
 import { User, AuthTokens } from '../types';
 import { API_BASE_URL, STORAGE_KEYS, RETRY_CONFIG } from '../utils/constants';
 import DatabaseService from './database';
+import offlineAuthService, { TOKEN_SESION_OFFLINE } from './offlineAuthService';
 
 interface LoginRequest {
   email: string;
@@ -73,6 +74,20 @@ class AuthService {
     timeout: 30000,
   });
   private legacySessionMigrated = false;
+  private refreshPending: Promise<void> | null = null;
+  private sessionVersion = 0;
+  private expiredListeners = new Set<() => void>();
+
+  onSessionExpired(listener: () => void): () => void {
+    this.expiredListeners.add(listener);
+    return () => { this.expiredListeners.delete(listener); };
+  }
+
+  private async expireSession(): Promise<void> {
+    await this.deleteStoredToken();
+    // Conserva SQLite y la identidad local; solo se retira la credencial inválida.
+    for (const listener of this.expiredListeners) listener();
+  }
 
   constructor() {
     this.setupInterceptors();
@@ -90,35 +105,10 @@ class AuthService {
       (error) => Promise.reject(error),
     );
 
-    this.client.interceptors.response.use(
-      (response) => response,
-      async (error) => {
-        const originalRequest = error.config;
-
-        if (
-          error.response?.status === 401 &&
-          originalRequest &&
-          !originalRequest._retry &&
-          originalRequest.url !== '/auth/refresh'
-        ) {
-          originalRequest._retry = true;
-          try {
-            await this.refreshAccessToken();
-            const token = await this.getStoredToken();
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return this.client(originalRequest);
-          } catch (refreshError) {
-            await this.logout();
-            return Promise.reject(refreshError);
-          }
-        }
-
-        return Promise.reject(error);
-      },
-    );
   }
 
   async login(request: LoginRequest): Promise<AuthResponse> {
+    this.sessionVersion++;
     try {
       const response = await this.client.post('/auth/login', request);
       const data = mapBackendAuth(response.data);
@@ -126,13 +116,40 @@ class AuthService {
       await this.storeUserId(data.user.id);
       // Sólo se guarda el perfil. La contraseña nunca se copia a SQLite.
       await this.cacheUsuarioLocal(data.user);
+      // Habilita el acceso sin conexión en este dispositivo de aquí en adelante.
+      await offlineAuthService.recordar(request.email, request.password, data.user);
       return data;
     } catch (error: any) {
+      // Sin respuesta del servidor = sin red. Se intenta con la credencial
+      // guardada en el dispositivo tras un inicio de sesión anterior.
       if (!error?.response) {
-        throw new Error('Necesitas conexión a internet para iniciar sesión de forma segura.');
+        const usuario = await offlineAuthService.verificar(request.email, request.password);
+        if (usuario) return this.abrirSesionOffline(usuario);
+
+        const conocido = await offlineAuthService.tieneCredencial(request.email);
+        throw new Error(
+          conocido
+            ? 'Contraseña incorrecta. Sin internet solo se puede verificar la última que usaste en este teléfono.'
+            : 'Necesitas internet la primera vez que inicias sesión en este teléfono.',
+        );
       }
       throw this.handleError(error);
     }
+  }
+
+  /**
+   * Abre una sesión local sin token del servidor. La app funciona con SQLite;
+   * la sincronización se reanudará cuando el usuario entre con internet.
+   */
+  private async abrirSesionOffline(user: User): Promise<AuthResponse> {
+    const tokens: AuthTokens = {
+      access_token: TOKEN_SESION_OFFLINE,
+      expires_at: 0,
+    };
+    await this.storeTokens(tokens);
+    await this.storeUserId(user.id);
+    await this.cacheUsuarioLocal(user);
+    return { user, tokens };
   }
 
   async register(request: RegisterRequest): Promise<AuthResponse> {
@@ -154,6 +171,7 @@ class AuthService {
       await this.storeTokens(data.tokens);
       await this.storeUserId(data.user.id);
       await this.cacheUsuarioLocal(data.user);
+      await offlineAuthService.recordar(request.email, request.password, data.user);
       return data;
     } catch (error: any) {
       if (!error?.response) {
@@ -187,6 +205,7 @@ class AuthService {
   }
 
   async logout(): Promise<void> {
+    this.sessionVersion++;
     try {
       const token = await this.getStoredToken();
       if (token) {
@@ -200,26 +219,41 @@ class AuthService {
     }
   }
 
-  async refreshAccessToken(): Promise<void> {
-    try {
-      const refreshToken = await this.getSecureItem(STORAGE_KEYS.REFRESH_TOKEN);
-      if (!refreshToken) {
-        throw new Error('No refresh token available');
-      }
-
-      const response = await this.client.post('/auth/refresh', {
-        refresh_token: refreshToken,
+  refreshAccessToken(): Promise<void> {
+    if (!this.refreshPending) {
+      const version = this.sessionVersion;
+      this.refreshPending = this.renewSession(version).finally(() => {
+        this.refreshPending = null;
       });
+    }
+    return this.refreshPending;
+  }
 
-      // El backend devuelve { session } de Supabase
-      const session = response.data.session ?? {};
-      const tokens: AuthTokens = {
+  private async renewSession(version: number): Promise<void> {
+    const refreshToken = await this.getSecureItem(STORAGE_KEYS.REFRESH_TOKEN);
+    if (version !== this.sessionVersion) throw new Error('La sesión cambió.');
+    if (!refreshToken) {
+      await this.expireSession();
+      throw new Error('Tu sesión venció. Inicia sesión de nuevo.');
+    }
+    try {
+      const response = await this.client.post('/auth/refresh', { refresh_token: refreshToken });
+      if (version !== this.sessionVersion) throw new Error('La sesión cambió.');
+      const session = response.data.session;
+      if (!session?.access_token || !session?.refresh_token) {
+        throw new Error('El servidor no devolvió una sesión válida');
+      }
+      await this.storeTokens({
         access_token: session.access_token,
         refresh_token: session.refresh_token,
         expires_at: session.expires_at ? session.expires_at * 1000 : Date.now() + 3600_000,
-      };
-      await this.storeTokens(tokens);
-    } catch (error) {
+      });
+    } catch (error: any) {
+      if (version === this.sessionVersion && error.response?.status === 401) {
+        await this.expireSession();
+        throw new Error('Tu sesión venció. Inicia sesión de nuevo. Tus datos siguen guardados.');
+      }
+      // Los fallos de red o servidor no eliminan una sesión recuperable.
       throw this.handleError(error);
     }
   }

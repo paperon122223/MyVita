@@ -45,10 +45,10 @@ export function StatCard({ icon, image, label, value, variant, dark, horizontal 
         {/* Sin mini-gráfica en la fila compacta: es decorativa y el ancho
             que ocupaba hacía que se recortaran etiquetas como "Adherencia". */}
         <View style={styles.rowText}>
-          <Text style={[styles.labelSm, dark && styles.labelDark]} numberOfLines={1}>
+          <Text style={[styles.labelSm, dark && styles.labelDark]} >
             {label}
           </Text>
-          <Text style={[styles.valueSm, { color: tile.fg }]} numberOfLines={1}>
+          <Text style={[styles.valueSm, { color: tile.fg }]} >
             {value}
           </Text>
         </View>
@@ -69,10 +69,10 @@ export function StatCard({ icon, image, label, value, variant, dark, horizontal 
           <MaterialIcons name={icon} size={30} color={tile.fg} />
         )}
       </View>
-      <Text style={[styles.label, dark && styles.labelDark]} numberOfLines={1}>
+      <Text style={[styles.label, dark && styles.labelDark]} >
         {label}
       </Text>
-      <Text style={[styles.value, { color: tile.fg }]} numberOfLines={1}>
+      <Text style={[styles.value, { color: tile.fg }]} >
         {value}
       </Text>
       <View style={styles.sparkRow}>
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     borderRadius: 1.5,
   },
   labelSm: {
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: DS.fonts.semibold,
     color: DS.colors.text,
   },

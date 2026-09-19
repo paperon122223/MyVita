@@ -1,5 +1,7 @@
-import axios, { AxiosInstance, AxiosError } from 'axios';
+import { AxiosInstance, AxiosError } from 'axios';
+import authenticatedClient from './authenticatedClient';
 import authService from './authService';
+import { TOKEN_SESION_OFFLINE } from './offlineAuthService';
 import databaseService from './database';
 import {
   Medicamento,
@@ -30,25 +32,7 @@ class APIService {
   private syncInProgress: Promise<void> | null = null;
 
   constructor() {
-    this.client = axios.create({
-      baseURL: API_BASE_URL,
-      timeout: 30000,
-    });
-
-    this.setupInterceptors();
-  }
-
-  private setupInterceptors() {
-    this.client.interceptors.request.use(
-      async (config) => {
-        const token = await authService.getStoredToken();
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-      },
-      (error) => Promise.reject(error),
-    );
+    this.client = authenticatedClient;
   }
 
   // Tablas locales → tablas del backend (Supabase). Solo se sincronizan
@@ -354,6 +338,9 @@ class APIService {
 
   async processSyncQueue(userId: string): Promise<void> {
     if (!CLOUD_BACKEND_ENABLED) return;
+    // En sesión offline no hay token real: intentar sincronizar solo llenaría
+    // la cola de errores 401. Los cambios esperan al próximo login con red.
+    if ((await authService.getStoredToken()) === TOKEN_SESION_OFFLINE) return;
     if (this.syncInProgress) return this.syncInProgress;
     this.syncInProgress = this.processSyncQueueInternal(userId);
     try {

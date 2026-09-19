@@ -323,7 +323,10 @@ function DashboardScreen({ navigation }: any) {
 
       {/* Tarjeta de acceso al Asistente IA */}
       <Animated.View entering={FadeInDown.delay(260).duration(500)} style={styles.aiCardWrap}>
-        <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('ChatTab')}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('MoreTab', { screen: 'Chat' })}
+        >
           <LinearGradient
             colors={['#000000', '#00C2FF']}
             start={{ x: 0, y: 0 }}

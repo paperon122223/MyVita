@@ -18,10 +18,12 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "com.myvita.app",
+      "softwareKeyboardLayoutMode": "resize",
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "com.android.alarm.permission.SET_ALARM",
-        "android.permission.SCHEDULE_EXACT_ALARM"
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.CAMERA"
       ]
     },
     "web": {
@@ -64,7 +66,15 @@
         }
       ],
       "expo-audio",
-      "expo-speech-recognition"
+      "expo-speech-recognition",
+      "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "MyVita usa tus fotos para que puedas ponerle una imagen a cada medicamento y reconocerlo fácilmente.",
+          "cameraPermission": "MyVita usa la cámara para tomarle una foto a tus medicamentos y que los reconozcas por su color y forma."
+        }
+      ]
     ]
   }
 }

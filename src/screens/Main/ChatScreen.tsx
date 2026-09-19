@@ -12,6 +12,7 @@ import {
   Modal,
   Image,
   Alert,
+  Keyboard,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Speech from 'expo-speech';
@@ -31,6 +32,7 @@ import { useSelector } from 'react-redux';
 import chatService from '../../services/chatService';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { ScreenBackground } from '../../components/ui/ScreenBackground';
+import { SectionHero } from '../../components/ui/SectionHero';
 import { useTabBarClearance } from '../../utils/layout';
 import { DesignSystem as DS } from '../../theme/designSystem';
 import { RootState } from '../../types';
@@ -72,6 +74,7 @@ function ChatScreen({ navigation }: any) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [aiConsent, setAiConsent] = useState<boolean | null>(null);
   // Lectura en voz alta (accesibilidad para adultos mayores)
   const [leerAuto, setLeerAuto] = useState(true);
@@ -252,6 +255,15 @@ function ChatScreen({ navigation }: any) {
     return () => clearTimeout(t);
   }, [messages, typing]);
 
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => {
+      setKeyboardVisible(true);
+      requestAnimationFrame(() => flatListRef.current?.scrollToEnd({ animated: true }));
+    });
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+
   // Espacio que ocupa la barra flotante: el input se apoya justo encima.
   const tabBarClearance = useTabBarClearance();
   const bg = isDark ? DS.colors.surfaceDark : DS.colors.surface;
@@ -325,7 +337,7 @@ function ChatScreen({ navigation }: any) {
   return (
     <ScreenBackground isDark={isDark}>
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
       <View style={[styles.safetyBanner, { backgroundColor: isDark ? '#312f1f' : '#fff4df' }]}>
@@ -335,15 +347,7 @@ function ChatScreen({ navigation }: any) {
 
       {messages.length === 0 && !typing ? (
         <ScrollView contentContainerStyle={styles.welcomeContainer}>
-          <View style={styles.welcomeIconWrap}>
-            <Animated.View pointerEvents="none" style={[styles.welcomeIconGlow, pulseStyle]} />
-            <Image
-              source={require('../../../assets/images/robot-asistente-full.png')}
-              style={styles.welcomeIcon}
-              resizeMode="contain"
-            />
-          </View>
-          <Text style={[styles.welcomeTitle, { color: textColor }]}>Asistente Médico</Text>
+          <SectionHero title="Pregunta con confianza" subtitle="Tu asistente está aquí para acompañarte." image={require('../../../assets/images/section-assistant.png')} isDark={isDark} />
           <Text style={[styles.welcomeSubtitle, { color: isDark ? DS.colors.mutedDark : DS.colors.muted }]}>
             Conozco tus medicamentos, tomas y adherencia. Pregúntame lo que necesites 💊
           </Text>
@@ -366,6 +370,9 @@ function ChatScreen({ navigation }: any) {
           renderItem={renderMessage}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesList}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
           ListFooterComponent={
             typing ? (
               <View style={[styles.messageRow, styles.rowAssistant]}>
@@ -385,7 +392,7 @@ function ChatScreen({ navigation }: any) {
       <View
         style={[
           styles.inputBar,
-          { backgroundColor: cardBg, paddingBottom: tabBarClearance },
+          { backgroundColor: cardBg, paddingBottom: keyboardVisible ? 10 : tabBarClearance },
         ]}
       >
         <TextInput
@@ -453,7 +460,7 @@ function ChatScreen({ navigation }: any) {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.consentSecondary}
-              onPress={() => navigation.navigate('MoreTab', { screen: 'Privacy' })}
+              onPress={() => navigation.navigate('Privacy')}
             >
               <Text style={styles.consentSecondaryText}>Ver aviso de privacidad</Text>
             </TouchableOpacity>
